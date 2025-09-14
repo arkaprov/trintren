@@ -3766,3 +3766,194 @@ If you encounter issues or want to extend the functionality (e.g., pagination, a
 - “I’m getting a specific error in Eclipse; here’s the stack trace…”
 
 Test the endpoint as described, and share any feedback or errors for further assistance!
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Step-by-Step Guide to Push to NEXA-112 Branch
+1. Ensure Your Local Repository is Up to Date
+Before creating a new branch, sync your local repository with the remote main branch to avoid conflicts:
+
+Open a terminal and navigate to your project directory:
+bashcd /path/to/Spring-core-concepts
+
+Fetch the latest changes from the remote repository:
+bashgit fetch origin
+
+Switch to the main branch and pull updates:
+bashgit checkout main
+git pull origin main
+This ensures your local main matches the production branch.
+
+2. Create and Switch to the NEXA-112 Branch
+
+Create a new branch for your task (e.g., NEXA-112 for the search endpoint):
+bashgit checkout -b NEXA-112
+This command creates the NEXA-112 branch and switches to it. The -b flag ensures the branch is new; if it already exists remotely, you can just switch to it with git checkout NEXA-112.
+
+3. Add Your Changes
+Since you’ve been working on the /api/v1/landing-page/search endpoint, ensure all related files are in your project:
+
+Files to Include (from the previous responses):
+
+src/main/java/com/arka/core/entity/Document.java
+src/main/java/com/arka/core/dto/DocumentDto.java
+src/main/java/com/arka/core/repository/DocumentRepository.java
+src/main/java/com/arka/core/service/DocumentService.java
+src/main/java/com/arka/core/service/impl/DocumentServiceImpl.java
+src/main/java/com/arka/core/controller/LandingPageController.java
+src/main/java/com/arka/core/utils/Response.java
+src/main/java/com/arka/core/utils/ResponseBuilder.java
+src/main/java/com/arka/core/utils/ResponseType.java
+src/main/java/com/arka/core/entity/BaseEntity.java
+src/main/java/com/arka/core/entity/BaseEntityWithUpdate.java
+src/main/java/com/arka/core/entity/BaseEntityWithUpdateAndDelete.java
+src/main/resources/db/migration/V1__create_documents.sql
+(Optional) Update src/main/java/com/arka/core/security/SecurityConfig.java to include /api/v1/landing-page/** in PUBLIC_MATCHER if not already done.
+
+
+Verify Files:
+
+Ensure these files are added to your project in Eclipse or manually in the filesystem.
+If you’ve made changes in Eclipse, save all files.
+
+
+Stage Changes:
+
+Add the new and modified files to the Git staging area:
+bashgit add .
+
+Alternatively, add specific files if you want to be selective:
+bashgit add src/main/java/com/arka/core/controller/LandingPageController.java
+git add src/main/resources/db/migration/V1__create_documents.sql
+
+
+
+
+4. Commit Your Changes
+
+Commit the changes with a descriptive message related to the task (e.g., NEXA-112):
+bashgit commit -m "NEXA-112: Implement /api/v1/landing-page/search endpoint with LIKE query for title, description, and category"
+
+
+5. Push the NEXA-112 Branch to GitHub
+
+Push the new branch to the remote repository:
+bashgit push origin NEXA-112
+
+If this is the first push of the NEXA-112 branch, Git might require you to set the upstream branch. The -u flag handles this:
+bashgit push -u origin NEXA-112
+
+If prompted, enter your GitHub username and password or use a personal access token (as described earlier).
+
+6. Verify on GitHub
+
+Go to your GitHub repository (e.g., https://github.com/your-username/Spring-core-concepts).
+You should see the NEXA-112 branch listed under the “Branches” tab.
+Click on the branch to confirm that all committed files (e.g., LandingPageController.java, V1__create_documents.sql) are present.
+
+7. Run and Test the Application
+To ensure your changes work before or after pushing, run the application and test the endpoint:
+
+Run in Eclipse:
+
+Right-click SpringCoreConceptsApplication.java > Run As > Java Application.
+Check the console for startup logs and Flyway migration success (it will create the documents table).
+
+
+Insert Test Data:
+
+Use a database tool (e.g., pgAdmin) or the H2 console (if enabled) to insert test data into the documents table:
+sqlINSERT INTO documents (title, description, category) VALUES 
+('Sample Doc 1', 'This is a test description for document 1', 'Category A'),
+('Sample Doc 2', 'Another description like this', 'Category B'),
+('Test Document', 'Description containing keyword', 'Test Category');
+
+
+
+Test with Postman:
+
+Method: GET
+URL: http://localhost:8000/api/v1/landing-page/search?query=sample
+Params: query=sample (try doc, category, test for other matches)
+Expected Response:
+json{
+    "status": "success",
+    "data": [
+        {
+            "id": 1,
+            "title": "Sample Doc 1",
+            "description": "This is a test description for document 1",
+            "category": "Category A"
+        },
+        {
+            "id": 2,
+            "title": "Sample Doc 2",
+            "description": "Another description like this",
+            "category": "Category B"
+        }
+    ],
+    "message": "Documents searched successfully."
+}
+
+Test cases: Case-insensitive (SAMPLE), partial match (doc), category search (Category), no results (nonexistent).
+
+
+
+8. Create a Pull Request (Optional)
+
+On GitHub, go to the NEXA-112 branch.
+Click “Contribute” or “Create Pull Request” to propose merging NEXA-112 into main once reviewed.
+Add a description (e.g., “NEXA-112: Added search endpoint for landing page”).
+Assign reviewers if applicable, then create the pull request.
+
+9. Troubleshooting
+
+Branch Not Found: Ensure you pushed to the correct remote (git remote -v to verify).
+Push Rejected: Resolve conflicts by pulling main into NEXA-112 (git pull origin main) and resolving merge conflicts.
+Build Errors: Run mvn clean install in the terminal or Eclipse to rebuild.
+Database Issues: Verify PostgreSQL is running and credentials in application.yml are correct.
+Endpoint Issues: Check logs for errors, ensure SecurityConfig allows public access to /api/v1/landing-page/**.
+
+Additional Notes
+
+Branch Naming: NEXA-112 suggests a task or ticket ID (e.g., from Jira). Ensure it aligns with your team’s workflow.
+Collaboration: If others are working on the project, communicate that NEXA-112 is in progress to avoid overwriting.
+Backup: Before pushing, consider backing up your local repository (git clone to a new folder if needed).
+Postman Collection: Save your Postman requests in a collection for future testing after deployment.
+
+Next Steps
+
+Push the NEXA-112 branch and test the endpoint as described.
+If you encounter issues (e.g., Git errors, runtime exceptions), share the details (e.g., error messages), and I’ll assist.
+If you need to extend the endpoint (e.g., add pagination, authentication), let me know, and I can provide updated code.
+Example follow-ups:
+
+“I’m getting a ‘permission denied’ error when pushing; how do I fix it?”
+“Can you help add pagination to the search endpoint on this branch?”
+“How do I merge NEXA-112 back to main after review?”
+
+
+
+Proceed with the steps, and let me know how it goes or if you need further guidance!
