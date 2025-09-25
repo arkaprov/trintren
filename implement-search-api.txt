@@ -57,11 +57,18 @@ CREATE DATABASE nexadoc;
 
 11. Import NexaDoc into Eclipse
 
+NexaDoc project is built using Gradle rather than Maven
+Install Buildship Plugin in Eclipse   -> Go to Help > Eclipse Marketplace, search for "Buildship" -> install
+
+Import the Gradle Project into Eclipse
+
 Open Eclipse.
-File > Import > Maven > Existing Maven Projects > Next.
-Browse to C:\Arka\Nexadoc\Nexadoc - 17 Sep 2025\NexaDoc.
-Select pom.xml > Finish.
-Update Maven: Right-click project > Maven > Update Project > Check Force Update > OK.
+File > Import > Gradle > Existing Gradle Project > Next.
+Click Browse and select C:\Arka\Nexadoc\Nexadoc - 17 Sep 2025\NexaDoc (the directory containing build.gradle).
+(Previously my system variables -> java home path was set wrong and i fixed it.
+
+echo %JAVA_HOME%
+gradlew build --stacktrace
 
 12. Add Search Endpoint Code
 
