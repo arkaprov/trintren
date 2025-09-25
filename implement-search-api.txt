@@ -1,0 +1,104 @@
+Step-by-Step Guide to Implement the Search Endpoint
+
+1. GitHub -> settings -> Create new token
+2. Clone the NexaDoc Repository - Clone the repository using your GitHub token (classic one -not fine grained)
+git clone https://<username>:<token>@github.com/bduswork/bitcoinapps_backend.git
+git clone https://arkaprov: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@github.com/WebDev-ASL/NexaDoc.git
+
+3. configure your git identity -  Go to project directory -
+git config --global user.email "arka8135@gmail.com"
+git config --global user.name "Arka Provo Pal"
+
+4. To avoid disrupting main (production), create a new branch for your task: 
+git checkout -b Feature/NEX-112
+
+5. Verify: Run git branch to see * NEXA-112 indicating you’re on that branch.
+
+6. Now i had to install PostgreSQL -> it was already on my system, but i forgot password -> so i run Win + R -> services.msc ->PostgreSQL ->stop
+Now go to -> C:\Program Files\PostgreSQL\<version>\data
+In the data directory, find pg_hba.conf and open it with a text editor (e.g., Notepad) as Administrator.
+
+# TYPE  DATABASE  USER  ADDRESS  METHOD
+local   all       all             md5
+
+Change md5 to trust for local connections (temporary):
+local   all       all             trust
+
+7. Now go to /bin and start psql.
+pg_ctl -D "C:\Program Files\PostgreSQL\17\data" start
+postgres --single -D "C:\Program Files\PostgreSQL\17\data"
+
+You can delete postmaster.pid from /data
+
+ALTER USER arka WITH PASSWORD 'arka123';
+
+net start postgresql-x64-17
+
+
+
+
+
+
+
+pg_ctl -D "C:\Program Files\PostgreSQL\17\data" start    -> server started
+psql -U arka -d postgres
+
+
+Now our project directory, C:\Program Files\PostgreSQL\17\bin -> contains java code, dependencies, but not the database -> we need to setup and manage the database separately.
+The application connects to the database via JDBC (as defined in application.yml 
+
+psql -U postgres
+ALTER USER postgres WITH PASSWORD 'postgres123';
+\q
+psql -U postgres
+Enter postgres123
+CREATE DATABASE nexadoc;
+\q.
+
+11. Import NexaDoc into Eclipse
+
+Open Eclipse.
+File > Import > Maven > Existing Maven Projects > Next.
+Browse to C:\Arka\Nexadoc\Nexadoc - 17 Sep 2025\NexaDoc.
+Select pom.xml > Finish.
+Update Maven: Right-click project > Maven > Update Project > Check Force Update > OK.
+
+12. Add Search Endpoint Code
+
+Add files in src/main/java/com/nexalinx/nexadoc (adjust if package differs—check existing structure):
+
+Entity (entity/Document.java): Use code from previous guide.
+Repository (repository/DocumentRepository.java): Use code from previous guide.
+DTO (dto/DocumentDto.java): Use code from previous guide.
+Service (service/DocumentService.java): Use code from previous guide.
+Service Impl (service/impl/DocumentServiceImpl.java): Use code from previous guide.
+Controller (controller/LandingPageController.java): Use code from previous guide.
+Utils: Ensure ResponseType.java, ResponseBuilder.java, Response.java in utils.
+
+
+
+13. Run the Application
+
+Right-click NexaDocApplication.java > Run As > Java Application.
+Check console for startup on http://localhost:8000.
+
+14. Test in Postman
+
+Install: Download from postman.com.
+Request: New > HTTP Request, name "NexaDoc Search".
+Configure:
+
+Method: GET.
+URL: http://localhost:8000/api/v1/landing-page/search?query=sample.
+Params: Key query, Value sample.
+
+
+Send: Expected response as per guide.
+Test Cases: SAMPLE, test, Category, nonexistent, no query.
+
+15. Commit and Push
+
+In Command Prompt (in project directory):
+textgit add .
+git commit -m "Feature/NEX-112: Implement /api/v1/landing-page/search endpoint"
+git push origin Feature/NEX-112
