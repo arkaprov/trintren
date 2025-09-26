@@ -109,3 +109,344 @@ In Command Prompt (in project directory):
 textgit add .
 git commit -m "Feature/NEX-112: Implement /api/v1/landing-page/search endpoint"
 git push origin Feature/NEX-112
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Step-by-Step Guide
+1. Add Search Endpoint Code
+You need to create or update several files in the src/main/java/com/nexalinx/nexadoc package (adjust the package name if it differs in your project structure). If these files already exist, modify them accordingly.
+
+Entity (entity/Document.java):
+javapackage com.nexalinx.nexadoc.entity;
+
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.Table;
+import lombok.Getter;
+import lombok.Setter;
+
+@Getter
+@Setter
+@Entity
+@Table(name = "documents")
+public class Document extends BaseEntityWithUpdateAndDelete {
+    @Column(name = "title", nullable = false)
+    private String title;
+
+    @Column(name = "description")
+    private String description;
+
+    @Column(name = "category")
+    private String category;
+}
+
+Ensure BaseEntityWithUpdateAndDelete exists (a parent class with id, createdAt, etc.) or adjust to extend BaseEntity if needed.
+
+
+Repository (repository/DocumentRepository.java):
+javapackage com.nexalinx.nexadoc.repository;
+
+import com.nexalinx.nexadoc.entity.Document;
+import org.springframework.data.jpa.repository.JpaRepository;
+
+import java.util.List;
+
+public interface DocumentRepository extends JpaRepository<Document, Integer> {
+    List<Document> findByTitleContainingIgnoreCaseOrDescriptionContainingIgnoreCaseOrCategoryContainingIgnoreCase(
+            String titleQuery, String descriptionQuery, String categoryQuery);
+}
+
+DTO (dto/DocumentDto.java):
+javapackage com.nexalinx.nexadoc.dto;
+
+import com.nexalinx.nexadoc.entity.Document;
+import lombok.Getter;
+import lombok.Setter;
+
+@Getter
+@Setter
+public class DocumentDto {
+    private Integer id;
+    private String title;
+    private String description;
+    private String category;
+
+    public static DocumentDto from(Document document) {
+        DocumentDto dto = new DocumentDto();
+        dto.setId(document.getId());
+        dto.setTitle(document.getTitle());
+        dto.setDescription(document.getDescription());
+        dto.setCategory(document.getCategory());
+        return dto;
+    }
+}
+
+Service (service/DocumentService.java):
+javapackage com.nexalinx.nexadoc.service;
+
+import com.nexalinx.nexadoc.entity.Document;
+import java.util.List;
+
+public interface DocumentService {
+    List<Document> searchDocuments(String query);
+}
+
+Service Implementation (service/impl/DocumentServiceImpl.java):
+javapackage com.nexalinx.nexadoc.service.impl;
+
+import com.nexalinx.nexadoc.entity.Document;
+import com.nexalinx.nexadoc.repository.DocumentRepository;
+import com.nexalinx.nexadoc.service.DocumentService;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Service;
+
+import java.util.List;
+
+@Service
+@RequiredArgsConstructor
+public class DocumentServiceImpl implements DocumentService {
+    private final DocumentRepository documentRepository;
+
+    @Override
+    public List<Document> searchDocuments(String query) {
+        return documentRepository.findByTitleContainingIgnoreCaseOrDescriptionContainingIgnoreCaseOrCategoryContainingIgnoreCase(
+                query, query, query);
+    }
+}
+
+Controller (controller/LandingPageController.java):
+javapackage com.nexalinx.nexadoc.controller;
+
+import com.nexalinx.nexadoc.dto.DocumentDto;
+import com.nexalinx.nexadoc.service.DocumentService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
+
+import java.util.List;
+import java.util.stream.Collectors;
+
+import static com.nexalinx.nexadoc.utils.ResponseBuilder.success;
+import static org.springframework.http.ResponseEntity.ok;
+
+@RestController
+@RequestMapping("/api/v1/landing-page")
+@RequiredArgsConstructor
+@Tag(name = "Landing Page", description = "API for landing page operations")
+public class LandingPageController {
+    private final DocumentService documentService;
+
+    @Operation(summary = "Search documents", description = "Searches documents by title, description, or category using LIKE query.")
+    @GetMapping("/search")
+    public ResponseEntity<Object> searchDocuments(@RequestParam("query") String query) {
+        List<DocumentDto> results = documentService.searchDocuments(query)
+                .stream()
+                .map(DocumentDto::from)
+                .collect(Collectors.toList());
+        return ok(success(results, "Documents searched successfully.").getJson());
+    }
+}
+
+Utils (if not present):
+
+Ensure ResponseType.java, ResponseBuilder.java, and Response.java are in utils. If missing, use:
+
+ResponseType.java:
+javapackage com.nexalinx.nexadoc.utils;
+
+public enum ResponseType {
+    SUCCESS, ERROR
+}
+
+ResponseBuilder.java:
+javapackage com.nexalinx.nexadoc.utils;
+
+import com.fasterxml.jackson.databind.ObjectMapper;
+import lombok.Data;
+
+@Data
+public class ResponseBuilder {
+    private ResponseType status;
+    private Object data;
+    private String message;
+
+    public static ResponseBuilder success(Object data, String message) {
+        ResponseBuilder response = new ResponseBuilder();
+        response.setStatus(ResponseType.SUCCESS);
+        response.setData(data);
+        response.setMessage(message);
+        return response;
+    }
+
+    public String getJson() {
+        try {
+            ObjectMapper mapper = new ObjectMapper();
+            return mapper.writeValueAsString(this);
+        } catch (Exception e) {
+            return "{\"status\":\"error\",\"message\":\"Serialization failed\"}";
+        }
+    }
+}
+
+Response.java (optional, if needed):
+javapackage com.nexalinx.nexadoc.utils;
+
+public class Response {
+    private ResponseType status;
+    private Object data;
+    private String message;
+
+    // Getters, setters, and constructors as needed
+}
+
+
+
+
+
+Save All Files: Place them in the appropriate packages under src/main/java/com/nexalinx/nexadoc.
+
+2. Run the Application
+
+Ensure the PostgreSQL database (nexadoc) is set up and running (as per earlier steps with psql -U postgres and CREATE DATABASE nexadoc).
+In Eclipse, locate NexaDocApplication.java (typically in src/main/java/com/nexalinx/nexadoc).
+Right-click the file > Run As > Spring Boot App.
+
+If "Spring Boot App" isn’t an option: Right-click > Run As > Java Application. If it fails, ensure the Spring Boot plugin is active (check Help > Eclipse Marketplace > Search "Spring Tools" and install if needed).
+
+
+Monitor Console: Look for startup messages like "Started NexaDocApplication in X seconds" and "Tomcat started on port(s): 8000 (http)".
+Fix Issues: If it fails (e.g., database connection error), check application.yml (in src/main/resources) for:
+yamlserver:
+  port: 8000
+
+spring:
+  datasource:
+    url: jdbc:postgresql://localhost:5432/nexadoc
+    username: postgres
+    password: postgres123  # Update to your password
+  jpa:
+    hibernate:
+      ddl-auto: update
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+
+Ensure PostgreSQL is running (pg_ctl -D "C:\Program Files\PostgreSQL\17\data" start) and the password matches.
+
+
+
+3. Test in Postman
+
+Install Postman (if not installed):
+
+Download from postman.com.
+Install and launch.
+
+
+Create a New Request:
+
+Click New > HTTP Request.
+Name it "NexaDoc Search Test".
+
+
+Configure the Request:
+
+Method: Select GET.
+URL: Enter http://localhost:8000/api/v1/landing-page/search?query=sample.
+Params Tab:
+
+Key: query
+Value: sample
+
+
+Headers Tab: Leave empty (public endpoint).
+Body Tab: None (GET request).
+
+
+Send the Request:
+
+Click Send.
+Expected Response (if data exists):
+json{
+    "status": "success",
+    "data": [
+        {"id": 1, "title": "Sample Doc 1", "description": "This is a test", "category": "Category A"},
+        {"id": 2, "title": "Sample Doc 2", "description": "Another test", "category": "Category B"}
+    ],
+    "message": "Documents searched successfully."
+}
+
+If No Data: Insert test data via psql:
+textpsql -U postgres -d nexadoc
+INSERT INTO documents (title, description, category) VALUES
+('Sample Doc 1', 'This is a test', 'Category A'),
+('Sample Doc 2', 'Another test', 'Category B');
+\q
+
+
+
+Test Cases:
+
+query=SAMPLE (case-insensitive).
+query=test (partial match).
+query=Category (category match).
+query=nonexistent (empty array).
+Omit query (should return 400 Bad Request).
+
+
+Debug:
+
+If you get a 404, check the console for server errors.
+If 500, verify database connectivity and entity mappings.
+Save the request to a collection for reuse.
+
+
+
+4. Commit and Push Changes
+
+In Eclipse (Git perspective) or Command Prompt:
+
+Navigate to the project:
+textcd C:\Arka\Nexadoc\Nexadoc - 17 Sep 2025\NexaDoc
+
+Stage changes:
+textgit add .
+
+Commit:
+textgit commit -m "Feature/NEX-112: Implement /api/v1/landing-page/search endpoint"
+
+Push:
+textgit push origin Feature/NEX-112
+
+
+
+
+
+Troubleshooting
+
+Code Errors: If classes like BaseEntityWithUpdateAndDelete are missing, create a basic version or adjust Document to extend a simple BaseEntity with an id.
+Application Won’t Start: Check the console for exceptions (e.g., DataSource errors—ensure PostgreSQL is running and credentials match).
+Postman 404: Confirm the server started on port 8000; adjust server.port in application.yml if needed.
+Database Empty: Run the INSERT queries above.
+
+
+
+
