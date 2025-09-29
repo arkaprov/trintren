@@ -1,1 +1,317 @@
-hi
+Steps to download and install java
+
+1. Search jdk download oracle 
+2. https://www.oracle.com/in/java/technologies/downloads/#jdk24-windows
+3. Choose x64 installer bin.exe.zip for windows 
+The installer contains jre + jdk + development tools.
+4. Now in Program files -> Java -> copy unzipped jdk file
+5. Copy the bin directory path ->C:\Program Files\Java\jdk-24.0.2\bin
+6. Open environment variables. There should be user variable and system variable.
+7. You should select user variable ->path variable -> edit -> add one path -> paste our bin path.
+8. now run java -version in command -> you should see the version now.
+
+
+Steps to download and install eclipse
+
+1. Search eclipse jee
+2. Download x86_64 for windows.
+install ->https://www.eclipse.org/downloads/download.php?file=/oomph/epp/2025-09/R/eclipse-inst-jre-win64.exe -> choose eclipse ide for enterprise java and web developers ->
+
+Steps to setup thw spring project and Tight Coupling
+
+1. Open-> https://start.spring.io/
+2. Project -> Maven  -> Springboot- 3.5.5 -> Project metadata - com.arka.core -> artifact- Spring core concepts -> Packaging - jar -> java - 24 -> (Skip dependencies as of now) -> generate -> download zip -> open that directory with IntelliJ
+3. Now go to src/main/java
+
+
+TIght Coupling 
+
+#In the code you provided, the Person class directly creates an Animal object using Animal animal = new Animal();. This means Person is tightly coupled to the specific Animal class. Tight coupling implies that Person depends heavily on the exact implementation of Animal. Any changes to Animal could directly impact Person, even if you don’t modify Person.java.
+
+
+
+
+
+
+
+
+Steps to Set Up Dependencies and Configurations in the Project Directory (Springboot) (Didn't work for me, but concepts)
+
+1. Download your springboot project into a directory.
+2. Go -> https://adoptium.net/temurin/releases -> and download open jdk.zip for windows into your project directory -> ren C:\path\to\nexadoc\tools\jdk-17.0.2+8 jdk -> Extract the JDK to tools\jdk
+3. Now create a Project-Specific Environment Script -> nexadoc\venv.bat ->
+@echo off
+set JAVA_HOME=%CD%\tools\jdk
+set PATH=%JAVA_HOME%\bin;%PATH%
+echo Java environment activated for NexaDoc project.
+
+4. This script mimics a Python venv by setting environment variables only for the current Command Prompt session, leaving the system environment unchanged.
+5. Go into the project directory and write in terminal->
+call venv.bat
+java -version
+
+6. This would show if java ins there in the directory or not.
+7. Now we gotta setup maven wrapper (Isolated Dependencies) -> The Maven Wrapper ensures Maven runs without a system-wide installation.
+8. Now we gotta download Apache Maven bin.zip and unzip it into project directory -> https://maven.apache.org/download.cgi ->download from here -> Extract to C:\path\to\nexadoc\tools\maven
+9. Add Maven to the session PATH in venv.bat (set accordingly)
+@echo off
+set JAVA_HOME=%CD%\tools\jdk\
+set MAVEN_HOME=%CD%\tools\maven\apache-maven-3.9.11
+set PATH=%JAVA_HOME%\bin;%MAVEN_HOME%\bin;%PATH%
+echo Java and Maven environment activated for NexaDoc project.
+
+10. Now  Generate Maven Wrapper -> Go to project directory -> 
+call venv.bat
+mvn -N wrapper:wrapper
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Step-by-Step Guide to Implement the Search Endpoint
+
+1. GitHub -> settings -> Create new token
+2. Clone the NexaDoc Repository - Clone the repository using your GitHub token (classic one -not fine grained)
+git clone https://<username>:<token>@github.com/bduswork/bitcoinapps_backend.git
+git clone https://arkaprov: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@github.com/WebDev-ASL/NexaDoc.git
+
+3. configure your git identity -  Go to project directory -
+git config --global user.email "arka8135@gmail.com"
+git config --global user.name "Arka Provo Pal"
+
+4. To avoid disrupting main (production), create a new branch for your task: 
+git checkout -b Feature/NEX-112
+
+5. Verify: Run git branch to see * NEXA-112 indicating you’re on that branch.
+
+6. Now i had to install PostgreSQL -> it was already on my system, but i forgot password -> so i run Win + R -> services.msc ->PostgreSQL ->stop
+Now go to -> C:\Program Files\PostgreSQL\<version>\data
+In the data directory, find pg_hba.conf and open it with a text editor (e.g., Notepad) as Administrator.
+
+# TYPE  DATABASE  USER  ADDRESS  METHOD
+local   all       all             md5
+
+Change md5 to trust for local connections (temporary):
+local   all       all             trust
+
+7. Now go to /bin and start psql.
+pg_ctl -D "C:\Program Files\PostgreSQL\17\data" start
+postgres --single -D "C:\Program Files\PostgreSQL\17\data"
+
+You can delete postmaster.pid from /data
+
+ALTER USER arka WITH PASSWORD 'arka123';
+
+net start postgresql-x64-17
+
+
+
+
+
+
+
+pg_ctl -D "C:\Program Files\PostgreSQL\17\data" start    -> server started
+psql -U arka -d postgres
+
+
+Now our project directory, C:\Program Files\PostgreSQL\17\bin -> contains java code, dependencies, but not the database -> we need to setup and manage the database separately.
+The application connects to the database via JDBC (as defined in application.yml 
+
+psql -U postgres
+ALTER USER postgres WITH PASSWORD 'postgres123';
+\q
+psql -U postgres
+Enter postgres123
+CREATE DATABASE nexadoc;
+\q.
+
+11. Import NexaDoc into Eclipse
+
+NexaDoc project is built using Gradle rather than Maven
+Install Buildship Plugin in Eclipse   -> Go to Help > Eclipse Marketplace, search for "Buildship" -> install
+
+Import the Gradle Project into Eclipse
+
+Open Eclipse.
+File > Import > Gradle > Existing Gradle Project > Next.
+Click Browse and select C:\Arka\Nexadoc\Nexadoc - 17 Sep 2025\NexaDoc (the directory containing build.gradle).
+(Previously my system variables -> java home path was set wrong and i fixed it.
+
+echo %JAVA_HOME%
+gradlew build --stacktrace
+
+12. Add Search Endpoint Code
+
+Add files in src/main/java/com/nexalinx/nexadoc (adjust if package differs—check existing structure):
+
+Entity (entity/Document.java): Use code from previous guide.
+Repository (repository/DocumentRepository.java): Use code from previous guide.
+DTO (dto/DocumentDto.java): Use code from previous guide.
+Service (service/DocumentService.java): Use code from previous guide.
+Service Impl (service/impl/DocumentServiceImpl.java): Use code from previous guide.
+Controller (controller/LandingPageController.java): Use code from previous guide.
+Utils: Ensure ResponseType.java, ResponseBuilder.java, Response.java in utils.
+
+
+13. Run the Application
+
+Right-click NexaDocApplication.java > Run As > Java Application.
+Check console for startup on http://localhost:8000.
+
+14. Test in Postman
+
+Install: Download from postman.com.
+Request: New > HTTP Request, name "NexaDoc Search".
+Configure:
+
+Method: GET.
+URL: http://localhost:8000/api/v1/landing-page/search?query=sample.
+Params: Key query, Value sample.
+
+
+Send: Expected response as per guide.
+Test Cases: SAMPLE, test, Category, nonexistent, no query.
+
+15. Commit and Push
+
+In Command Prompt (in project directory):
+textgit add .
+git commit -m "Feature/NEX-112: Implement /api/v1/landing-page/search endpoint"
+git push origin Feature/NEX-112
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Building and Running Gradle Project from Command Line
+
+
+
+After cloning the gradle build springboot project, follow these ->
+
+Ensure the Gradle wrapper is executable (on Unix-like systems):
+	chmod +x gradlew
+(On Windows, it's gradlew.bat and should work out of the box.)
+Clean and build the project:
+	./gradlew clean build
+
+This downloads dependencies, compiles, and runs tests.
+If it fails here, check the error output. Common issues:
+
+Network problems (try a VPN if behind a proxy).
+Java version mismatch (run java -version and compare to build.gradle).
+Missing dependencies (e.g., if the project uses Lombok, ensure it's configured).
+Fix by editing build.gradle if needed, or search the error message online.
+
+
+
+
+If the build succeeds, run the application:
+	./gradlew bootRun
+
+This starts the Spring Boot app. Look for logs saying "Started MainApplication in X seconds" and "Tomcat started on port(s): 8080".
+Open a browser and go to http://localhost:8080 (or whatever endpoint your app exposes, like /hello if defined).
+
+
+Stop the app with Ctrl+C in the terminal.
+
+Alternative if bootRun isn't available (older projects):
+
+Build the JAR: ./gradlew bootJar (or just ./gradlew build).
+Run: java -jar build/libs/your-app-name.jar.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Fixing Eclipse Import Issues
+
+
+If command-line build works but Eclipse fails, the problem is likely with Eclipse's Gradle integration.
+
+Install Buildship Plugin (Eclipse's official Gradle support):
+
+In Eclipse: Help > Eclipse Marketplace.
+Search for "Buildship" and install "Buildship Gradle Integration".
+Restart Eclipse.
+
+
+Import the Project:
+
+File > Import > Gradle > Existing Gradle Project.
+Browse to your cloned repo directory and select it.
+In the import wizard:
+
+Use "Gradle wrapper" if available (recommended).
+If it prompts for Java home, point to your JDK.
+
+
+Click Finish. Eclipse will run a Gradle build during import.
+
+
+Troubleshoot Import Failures:
+
+Error: Gradle version incompatibility: Update your project's Gradle wrapper to match Eclipse's supported versions (check gradle/wrapper/gradle-wrapper.properties). Run ./gradlew wrapper --gradle-version=8.10.1 (or latest stable).
+Error: Missing dependencies or resolution failures: Run ./gradlew dependencies from command line to diagnose. Add repositories like mavenCentral() to build.gradle if missing.
+Error: Java version mismatch: Right-click project > Properties > Java Build Path > Ensure JDK matches project.
+Error: Lombok or annotations not recognized: Install Lombok plugin in Eclipse (Help > Eclipse Marketplace > "Lombok").
+OutOfMemoryError: Increase Eclipse heap in eclipse.ini (add -Xmx2048m).
+Refresh Gradle: Right-click project > Gradle > Refresh Gradle Project.
+If still failing, delete .gradle folder in project/user home and re-import.
+
+
+Run in Eclipse:
+
+Once imported successfully, find MainApplication.java (usually in src/main/java/com/example).
+Right-click > Run As > Java Application (or Spring Boot App if plugin detects it).
+Access http://localhost:8080 in browser.
+
+
+
+Additional Tips
+
+If the project has a settings.gradle or multi-modules, ensure all are imported correctly.
+Check application.properties or application.yml for port config (default is 8080; change to server.port=8080 if needed).
+If build fails due to specific errors (e.g., proxy, auth), provide the exact error message for more targeted help.
+Avoid IDE import if command line works—use VS Code with Java/Gradle extensions for lighter setup.
+
+This should get you running! If issues persist, share the exact build error.
