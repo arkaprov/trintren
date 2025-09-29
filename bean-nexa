@@ -145,10 +145,8 @@ Import the Gradle Project into Eclipse
 Open Eclipse.
 File > Import > Gradle > Existing Gradle Project > Next.
 Click Browse and select C:\Arka\Nexadoc\Nexadoc - 17 Sep 2025\NexaDoc (the directory containing build.gradle).
-(Previously my system variables -> java home path was set wrong and i fixed it.
 
-echo %JAVA_HOME%
-gradlew build --stacktrace
+use gradlew, and give jdk path and then build. It should show build successful.
 
 12. Add Search Endpoint Code
 
