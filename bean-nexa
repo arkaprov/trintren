@@ -313,3 +313,30 @@ If build fails due to specific errors (e.g., proxy, auth), provide the exact err
 Avoid IDE import if command line works—use VS Code with Java/Gradle extensions for lighter setup.
 
 This should get you running! If issues persist, share the exact build error.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+After cloning app, firebase.json and .env configured, (Since my eclipse build was failing), i tried command line from main project directory
+
+
+.\gradlew clean
+.\gradlew build
+.\gradlew bootRun
+
+Interact with it at http://localhost:7000.
