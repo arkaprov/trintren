@@ -719,3 +719,16 @@ Then create and merge the PR via GitHub.
   ```
 
 Let me know if you hit any issues or need clarification!
+
+
+
+
+
+What If Developers Pull Before Working?
+You noted that both developers pull code before pushing. This helps them start with the latest main, reducing conflicts when they create their feature branches. However:
+
+Pulling doesn’t prevent conflicts later, as main might change while they’re working.
+Pulling and pushing alone doesn’t provide review or collaboration. PRs add that layer of quality control.
+
+
+#####################################################
