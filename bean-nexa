@@ -340,3 +340,84 @@ After cloning app, firebase.json and .env configured, (Since my eclipse build wa
 .\gradlew bootRun
 
 Interact with it at http://localhost:7000.
+
+
+
+
+
+
+
+
+
+
+
+
+
+After u wrote API endpoints -> go to swagger ui of the backend server. Then to run database:
+
+1. Open pgadmin -> Servers -> Register -> Server
+2. Add a New Server:
+
+Open pgAdmin and right-click "Servers" in the left panel, then select "Register > Server".
+In the "General" tab, give the server a name (e.g., "NexaDoc DB"). (As in .env file)
+In the "Connection" tab, enter:
+
+Host: 62.171.179.61
+Port: 5433
+Maintenance database: nexadoc
+Username: nexadoc
+Password: Asl@1234
+
+
+Click "Save".
+
+
+Connect and Explore:
+
+Expand the server in the left panel, then navigate to Schemas > nexadoc > Tables to view tables.
+Use the "Query Tool" (right-click the server or schema > "Query Tool") to run SQL queries.
+
+
+Now test it- see table and rows and test the values in Swagger.
+
+
+###################
+Now go to the local project directory and run these commands to push it to the my branch of production repo :
+
+cd "C:\Arka\Nexadoc\Nexadoc - 8 Oct 2025\NexaDoc-develop\NexaDoc-develop"
+git init
+git remote add origin https://github.com/WebDev-ASL/NexaDoc.git
+git checkout -b Feature/NEXA-112
+git add your-directory  
+	use . to add all files):
+git commit -m "Initial commit for Feature/NEXA-112"
+git push -u origin Feature/NEXA-112
+
+
+
+If push gives error -> remote: Invalid username or token. Password authentication is not supported for Git operations.
+fatal: Authentication failed for 'https://github.com/WebDev-ASL/NexaDoc.git/'
+
+Option 1: Use a Personal Access Token (PAT)
+
+Generate a Personal Access Token:
+
+Go to GitHub and sign in.
+Click your profile picture (top-right) > Settings > Developer settings > Personal access tokens > Tokens (classic).
+Click Generate new token (classic).
+Give the token a name (e.g., "NexaDoc Push").
+Select scopes: At minimum, check repo (for repository access).
+Click Generate token and copy the token (e.g., ghp_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx).
+
+
+Update Git Credentials:
+
+Option A: Update credentials for this push:
+When running the push command, use the PAT as your password:
+bashgit push -u origin Feature/NEXA-112
+
+Username: Your GitHub username (e.g., YourUsername).
+Password: Paste your PAT (it won't display as you type).
+
+
+#########################################################
