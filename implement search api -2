@@ -1,0 +1,1654 @@
+https://gemini.google.com/app/a5993d6c3678363b
+
+
+Now, Build GET /api/v1/landing-
+
+page/search | where we can search
+
+using like query of document title,
+
+description, category.
+
+
+
+Give whole code, as well as give me details of testing it using POSTMAN.
+
+Of course! I've updated the necessary files to include the GET /api/v1/landing-page/search endpoint. 
+This allows users to perform a paginated search for documents based on a query string that matches the document's title, description, or any associated category names.
+
+Here are the updated files for your project:
+LandingPageController.java
+Oct 15, 12:33 AM
+LandingPageService.java
+Oct 14, 11:56 PM
+LandingPageServiceImpl.java
+Oct 14, 11:56 PM
+LandingPageRepositoryCustom.java
+Oct 14, 11:56 PM
+LandingPageRepositoryImpl.java
+Oct 14, 11:56 PM
+Postman Testing Guide
+Oct 14, 11:56 PM
+
+I have implemented the new search endpoint and provided detailed instructions on how to test it. 
+The search is designed to be flexible, covering titles, descriptions, and all levels of category names to ensure comprehensive results. Let me know if you have any other questions!
+
+
+
+Ok, what have we actually implemented with the /search endpoint... and what were we testing in postman?
+
+
+LandingPageController.java
+
+package com.nexalinx.nexadoc.controller;
+
+import com.nexalinx.nexadoc.exception.CustomMessagePresentException;
+import com.nexalinx.nexadoc.response.DocumentDetailsResponse;
+import com.nexalinx.nexadoc.response.LandingPageResponse;
+import com.nexalinx.nexadoc.service.LandingPageService;
+import com.nexalinx.nexadoc.utils.PaginatedResponse;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import lombok.RequiredArgsConstructor;
+import org.json.simple.JSONObject;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.Map;
+
+import static com.nexalinx.nexadoc.utils.ResponseBuilder.*;
+
+@RestController
+@RequestMapping("/api/v1/landing-page")
+@RequiredArgsConstructor
+@Tag(name = "Landing Page", description = "API for landing page operations")
+public class LandingPageController {
+
+    private static final Logger logger = LoggerFactory.getLogger(LandingPageController.class);
+    private final LandingPageService landingPageService;
+
+    /**
+     * Endpoint to retrieve landing page documents.
+     *
+     * @return LandingPageResponse containing document categories and testimonials.
+     */
+    @GetMapping("/documents")
+    public LandingPageResponse getDocuments() {
+        return landingPageService.getLandingPageDocuments();
+    }
+
+    /**
+     * Endpoint to retrieve a specific document by ID, supporting both logged-in and non-logged-in users.
+     *
+     * @param id    the document ID to retrieve
+     * @param email the optional email of the logged-in user (null for non-logged-in users)
+     * @return ResponseEntity containing the DocumentResponse with document details, reviews, and similar documents
+     */
+    @GetMapping("/documents/{id}")
+    public ResponseEntity<JSONObject> getDocumentById(
+            @PathVariable Integer id,
+            @RequestParam(required = false) String email) {
+        try {
+            DocumentDetailsResponse response = landingPageService.getDocumentById(id, email);
+            return ResponseEntity.ok(success(response).getJson());
+        } catch (CustomMessagePresentException e) {
+            logger.error("Invalid request document", e);
+            return ResponseEntity.badRequest().body(error(e.getMessage()).getJson());
+        }
+    }
+
+    /**
+     * Retrieves a paginated list of system documents based on specified criteria.
+     *
+     * @param limit                The maximum number of documents to return
+     * @param offset               The starting point for pagination
+     * @param rating               The status of the documents to filter by
+     * @param sortDate             The type of user who uploaded the documents
+     * @param specialistCategoryId Optional search term to filter documents by title
+     * @return ResponseEntity containing a paginated list of documents or an error message
+     */
+    @GetMapping("/documents/all")
+    @Operation(summary = "Retrieve all documents", description = "Retrieves a paginated list of documents with optional" +
+            " filters.")
+    public ResponseEntity<JSONObject> getAllDocument(
+            @RequestParam(value = "limit", defaultValue = "10", required = false) Integer limit,
+            @RequestParam(value = "offset", defaultValue = "0", required = false) Integer offset,
+            @RequestParam(value = "sortDate", required = false) String sortDate,
+            @RequestParam(value = "sortPrice", required = false) String sortPrice,
+            @RequestParam(value = "rating", required = false) Integer rating,
+            @RequestParam(value = "specialistCategoryId", required = false) Integer specialistCategoryId) {
+        logger.info("Fetching documents with limit: {}, offset: {}, sortDate: {}, sortPrice: {}, rating: {}, category: {}",
+                limit, offset, sortDate, sortPrice, rating, specialistCategoryId);
+        try {
+            PaginatedResponse response = landingPageService.getAllDocument(limit, offset, sortDate, sortPrice, rating, specialistCategoryId);
+            logger.info("Successfully retrieved documents");
+            return ResponseEntity.ok(paginatedSuccess(response, "Successfully retrieved documents").getJson());
+        } catch (CustomMessagePresentException e) {
+            logger.error("Error while retrieving documents: {}", e.getMessage());
+            return ResponseEntity.badRequest().body(error(null, e.getMessage()).getJson());
+        }
+    }
+
+    /**
+     * Searches for documents based on a query string.
+     * The search is performed on document titles, descriptions, and associated category names.
+     *
+     * @param q      The search query string.
+     * @param limit  Optional parameter to limit the number of results (default: 10).
+     * @param offset Optional parameter to specify the starting point for pagination (default: 0).
+     * @return A ResponseEntity containing a paginated list of matching documents or an error message.
+     */
+    @GetMapping("/search")
+    @Operation(summary = "Search for documents",
+            description = "Searches documents by title, description, and category names with pagination.")
+    public ResponseEntity<JSONObject> searchDocuments(
+            @RequestParam("q") String q,
+            @RequestParam(value = "limit", defaultValue = "10", required = false) Integer limit,
+            @RequestParam(value = "offset", defaultValue = "0", required = false) Integer offset) {
+        logger.info("Searching documents with query: '{}', limit: {}, offset: {}", q, limit, offset);
+        try {
+            PaginatedResponse response = landingPageService.searchDocuments(q, limit, offset);
+            logger.info("Successfully processed search for query: '{}'", q);
+            return ResponseEntity.ok(paginatedSuccess(response, "Search results retrieved successfully.").getJson());
+        } catch (CustomMessagePresentException e) {
+            logger.error("Error during document search for query '{}': {}", q, e.getMessage());
+            return ResponseEntity.badRequest().body(error(null, e.getMessage()).getJson());
+        }
+    }
+}
+
+
+
+###################################################################
+
+
+
+
+LandingPageService.java
+
+package com.nexalinx.nexadoc.service;
+
+import com.nexalinx.nexadoc.response.DocumentDetailsResponse;
+import com.nexalinx.nexadoc.response.LandingPageResponse;
+import com.nexalinx.nexadoc.utils.PaginatedResponse;
+import org.springframework.stereotype.Service;
+
+@Service
+public interface LandingPageService {
+    /**
+     * Retrieves the landing page documents including categories and testimonials.
+     *
+     * @return LandingPageResponse containing document categories and testimonials.
+     */
+    LandingPageResponse getLandingPageDocuments();
+
+    /**
+     * Retrieves a specific document by ID, supporting both logged-in and non-logged-in users.
+     *
+     * @param id    the document ID to retrieve
+     * @param email the optional email of the logged-in user (null for non-logged-in users)
+     * @return DocumentResponse containing document details, reviews, user review, and similar documents
+     */
+    DocumentDetailsResponse getDocumentById(Integer id, String email);
+
+    /**
+     * Retrieves a paginated list of documents based on various filters and sorting options.
+     *
+     * @param limit                The maximum number of documents to return
+     * @param offset               The starting point for pagination
+     * @param sortDate             Sorting direction for document ID
+     * @param sortPrice            Sorting direction for document name
+     * @param rating               The status of the documents to filter by
+     * @param specialistCategoryId The type of user who uploaded the documents
+     * @return PaginatedResponse containing a list of DocumentResponseDTO objects
+     */
+    PaginatedResponse getAllDocument(Integer limit, Integer offset, String sortDate, String sortPrice,
+                                     Integer rating, Integer specialistCategoryId);
+
+    /**
+     * Searches for documents based on a query string with pagination.
+     *
+     * @param query  The search term to match against document titles, descriptions, and categories.
+     * @param limit  The maximum number of documents to return.
+     * @param offset The starting point for the documents to return (used for pagination).
+     * @return A PaginatedResponse containing the list of matching documents.
+     */
+    PaginatedResponse searchDocuments(String query, Integer limit, Integer offset);
+}
+
+
+###############################################################################
+
+
+
+
+LandingPageServiceImpl.java
+
+package com.nexalinx.nexadoc.service.impl;
+
+import com.nexalinx.nexadoc.repository.LandingPageRepository;
+import com.nexalinx.nexadoc.response.*;
+import com.nexalinx.nexadoc.service.LandingPageService;
+import com.nexalinx.nexadoc.utils.CommonDataHelper;
+import com.nexalinx.nexadoc.utils.PaginatedResponse;
+import com.nexalinx.nexadoc.utils.PaginationParameters;
+import lombok.RequiredArgsConstructor;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.stereotype.Service;
+
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import static com.nexalinx.nexadoc.constant.ValidatorConstants.APPROVED_DOCUMENT_LIMITATION;
+import static com.nexalinx.nexadoc.constant.ValidatorConstants.MOST_SELL_APPROVED_DOCUMENT_LIMITATION;
+
+@Service
+@RequiredArgsConstructor
+public class LandingPageServiceImpl implements LandingPageService {
+    private final Logger logger = LoggerFactory.getLogger(LandingPageServiceImpl.class);
+    private final LandingPageRepository landingPageRepository;
+    private final CommonDataHelper commonDataHelper;
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public LandingPageResponse getLandingPageDocuments() {
+        List<LandingDocumentResponse> mostSellingDocs =
+                landingPageRepository.findMostSellApprovedDocumentWithLimit(MOST_SELL_APPROVED_DOCUMENT_LIMITATION);
+        List<LandingDocumentResponse> regularDocs =
+                landingPageRepository.findApprovedDocumentsWithLimit(APPROVED_DOCUMENT_LIMITATION);
+
+        List<DocumentCategoryResponse> categories = List.of(
+                new DocumentCategoryResponse("Most Selling Document", mostSellingDocs),
+                new DocumentCategoryResponse("Document", regularDocs)
+        );
+
+        List<TestimonialsResponse> testimonials = landingPageRepository.findTestimonialsReview();
+
+        return new LandingPageResponse(categories, testimonials);
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public DocumentDetailsResponse getDocumentById(Integer id, String email) {
+        return landingPageRepository.findDocumentById(id, email);
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public PaginatedResponse getAllDocument(Integer limit, Integer offset, String sortDate,
+                                            String sortPrice, Integer rating, Integer specialistCategoryId) {
+        logger.info("Service: Fetching documents with limit: {}, offset: {}, sortDate: {}, sortPrice: {}, rating: {}",
+                limit, offset, sortDate, sortPrice, rating);
+
+        PaginatedResponse response = new PaginatedResponse();
+        Map<String, Object> maps = new HashMap<>();
+
+        List<LandingDocumentResponse> documentResponses = landingPageRepository.getAllDocument(limit, offset,
+                sortDate, sortPrice, rating, specialistCategoryId);
+        Long totalCount = landingPageRepository.fetchAllDocumentCount(rating, specialistCategoryId);
+
+        PaginationParameters.getData(maps, offset, totalCount, limit, documentResponses);
+        commonDataHelper.getCommonData(maps, response, documentResponses);
+        return response;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public PaginatedResponse searchDocuments(String query, Integer limit, Integer offset) {
+        PaginatedResponse response = new PaginatedResponse();
+        Map<String, Object> maps = new HashMap<>();
+
+        List<LandingDocumentResponse> documents = landingPageRepository.searchDocuments(query, limit, offset);
+        Long totalCount = landingPageRepository.countSearchDocuments(query);
+
+        PaginationParameters.getData(maps, offset, totalCount, limit, documents);
+        commonDataHelper.getCommonData(maps, response, documents);
+
+        return response;
+    }
+}
+
+
+
+
+
+LandingPageRepositoryCustom.java
+
+package com.nexalinx.nexadoc.repository;
+
+import com.nexalinx.nexadoc.response.DocumentDetailsResponse;
+import com.nexalinx.nexadoc.response.LandingDocumentResponse;
+import com.nexalinx.nexadoc.response.TestimonialsResponse;
+import org.springframework.dao.DataAccessException;
+import org.springframework.stereotype.Repository;
+
+import java.util.List;
+
+@Repository
+public interface LandingPageRepositoryCustom {
+    /**
+     * Retrieves a list of approved documents with a specified limit.
+     *
+     * @param limit the maximum number of documents to retrieve
+     * @return a list of approved LandingDocumentResponse objects
+     */
+    List<LandingDocumentResponse> findApprovedDocumentsWithLimit(long limit);
+
+    /**
+     * Retrieves a list of the most selling approved documents with a specified limit.
+     *
+     * @param limit the maximum number of documents to retrieve
+     * @return a list of the most selling LandingDocumentResponse objects
+     */
+    List<LandingDocumentResponse> findMostSellApprovedDocumentWithLimit(long limit);
+
+    /**
+     * Retrieves a specific document by ID, supporting both logged-in and non-logged-in users.
+     *
+     * @param documentId the ID of the document to retrieve
+     * @param email      the optional email of the logged-in user (null for non-logged-in users)
+     * @return DocumentResponse containing document details, reviews, user review, and similar documents
+     */
+    DocumentDetailsResponse findDocumentById(Integer documentId, String email);
+
+    /**
+     * Retrieves a list of all testimonial reviews.
+     *
+     * @return a list of TestimonialsResponse objects containing testimonial review data
+     * @throws DataAccessException if there's an error accessing the data source
+     */
+    List<TestimonialsResponse> findTestimonialsReview();
+
+    /**
+     * Retrieves a list of documents based on the specified parameters.
+     *
+     * @param limit                The maximum number of documents to return
+     * @param offset               The starting point for pagination
+     * @param sortDate             Sorting direction for document ID (e.g., "asc" or "desc")
+     * @param sortPrice            Sorting direction for document name (e.g., "asc" or "desc")
+     * @param rating               The status of the documents to filter by
+     * @param specialistCategoryId The type of user who uploaded the documents
+     * @return List of DocumentResponseDTO containing document details
+     */
+    List<LandingDocumentResponse> getAllDocument(Integer limit, Integer offset, String sortDate,
+                                                 String sortPrice, Integer rating, Integer specialistCategoryId);
+
+    /**
+     * Counts the total number of documents based on the specified status and user type.
+     *
+     * @param rating               The status of the documents to filter by
+     * @param specialistCategoryId The type of user who uploaded the documents
+     * @return Total count of documents matching the criteria
+     */
+    Long fetchAllDocumentCount(Integer rating, Integer specialistCategoryId);
+
+    /**
+     * Searches for documents by a query string with pagination.
+     *
+     * @param query  The search term.
+     * @param limit  The maximum number of results.
+     * @param offset The starting offset.
+     * @return A list of matching documents.
+     */
+    List<LandingDocumentResponse> searchDocuments(String query, Integer limit, Integer offset);
+
+    /**
+     * Counts the total number of documents matching a search query.
+     *
+     * @param query The search term.
+     * @return The total count of matching documents.
+     */
+    Long countSearchDocuments(String query);
+}
+
+
+
+
+
+
+
+LandingPageRepositoryImpl.java
+
+package com.nexalinx.nexadoc.repository.impl;
+
+import com.google.firebase.database.DatabaseException;
+import com.nexalinx.nexadoc.entity.QDocument;
+import com.nexalinx.nexadoc.entity.QOrders;
+import com.nexalinx.nexadoc.entity.QTestimonials;
+import com.nexalinx.nexadoc.enums.DocStatus;
+import com.nexalinx.nexadoc.enums.ReferenceType;
+import com.nexalinx.nexadoc.exception.CustomMessagePresentException;
+import com.nexalinx.nexadoc.repository.LandingPageRepositoryCustom;
+import com.nexalinx.nexadoc.response.*;
+import com.querydsl.core.BooleanBuilder;
+import com.querydsl.core.Tuple;
+import com.querydsl.core.types.Order;
+import com.querydsl.core.types.OrderSpecifier;
+import com.querydsl.core.types.Projections;
+import com.querydsl.core.types.dsl.BooleanExpression;
+import com.querydsl.core.types.dsl.Expressions;
+import com.querydsl.jpa.JPAExpressions;
+import com.querydsl.jpa.impl.JPAQueryFactory;
+import jakarta.persistence.PersistenceException;
+import lombok.RequiredArgsConstructor;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.dao.DataAccessException;
+import org.springframework.stereotype.Repository;
+
+import java.math.BigDecimal;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Objects;
+import java.util.stream.Collectors;
+
+import static com.nexalinx.nexadoc.entity.QCategory.category;
+import static com.nexalinx.nexadoc.entity.QCategoryMapping.categoryMapping;
+import static com.nexalinx.nexadoc.entity.QDocument.document;
+import static com.nexalinx.nexadoc.entity.QDocumentCategoryExperience.documentCategoryExperience;
+import static com.nexalinx.nexadoc.entity.QKeywords.keywords1;
+import static com.nexalinx.nexadoc.entity.QMediaStorage.mediaStorage;
+import static com.nexalinx.nexadoc.entity.QReviewAndRating.reviewAndRating;
+import static com.nexalinx.nexadoc.entity.QSpecialist.specialist;
+import static com.nexalinx.nexadoc.entity.QSubCategory.subCategory;
+import static com.nexalinx.nexadoc.entity.QTertiaryCategory.tertiaryCategory;
+import static com.nexalinx.nexadoc.entity.QThumbnailMediaStorage.thumbnailMediaStorage;
+import static com.nexalinx.nexadoc.entity.QUser.user;
+
+@Repository
+@RequiredArgsConstructor
+public class LandingPageRepositoryImpl implements LandingPageRepositoryCustom {
+    private static final Logger logger = LoggerFactory.getLogger(LandingPageRepositoryImpl.class);
+    private final JPAQueryFactory queryFactory;
+    private final QTestimonials testimonials = QTestimonials.testimonials;
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public List<LandingDocumentResponse> findApprovedDocumentsWithLimit(long limit) {
+        return queryFactory
+                .select(Projections.constructor(LandingDocumentResponse.class,
+                        document.id,
+                        document.title.as("title"),
+                        document.description.as("description"),
+                        thumbnailMediaStorage.url.coalesce("").as("thumbnail"),
+                        Projections.constructor(PriceResponse.class,
+                                document.creditCost.as("value")),
+                        Projections.constructor(RatingResponse.class,
+                                document.averageRating.as("average"),
+                                document.totalReviews.as("count")),
+                        Expressions.stringTemplate(
+                                "CONCAT({0}, ' ', {1})", user.firstName, user.lastName
+                        ).as("publisherName"),
+                        document.docStatus.eq(DocStatus.APPROVED).as("isPublished")
+                ))
+                .from(document)
+                .leftJoin(thumbnailMediaStorage).on(thumbnailMediaStorage.id.eq(document.thumbnail.id))
+                .leftJoin(document.uploadBy, user)
+                .where(document.docStatus.eq(DocStatus.APPROVED).and(document.deletedAt.isNull()))
+                .orderBy(document.updatedAt.desc().nullsLast(), document.createdAt.desc())
+                .limit(limit)
+                .fetch();
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public List<LandingDocumentResponse> findMostSellApprovedDocumentWithLimit(long limit) {
+
+        QDocument document = QDocument.document;
+        QOrders order = QOrders.orders;
+
+        return queryFactory
+                .select(Projections.constructor(LandingDocumentResponse.class,
+                        document.id.intValue(),
+                        document.title,
+                        document.description,
+                        thumbnailMediaStorage.url.coalesce(""),
+                        Projections.constructor(PriceResponse.class,
+                                document.creditCost),
+                        Projections.constructor(RatingResponse.class,
+                                document.averageRating,
+                                document.totalReviews),
+                        Expressions.stringTemplate(
+                                "CONCAT({0}, ' ', {1})", user.firstName, user.lastName
+                        ).as("publisherName"),
+                        Expressions.cases()
+                                .when(document.docStatus.eq(DocStatus.APPROVED))
+                                .then(true)
+                                .otherwise(false)
+                ))
+                .from(document)
+                .leftJoin(thumbnailMediaStorage).on(thumbnailMediaStorage.id.eq(document.thumbnail.id))
+                .leftJoin(document.uploadBy, user)
+                .leftJoin(order).on(order.document.any().eq(document))
+                .where(document.docStatus.eq(DocStatus.APPROVED)
+                        .and(document.deletedAt.isNull()))
+                .groupBy(
+                        document.id, document.title, document.description,
+                        thumbnailMediaStorage.url, document.creditCost,
+                        document.averageRating, document.totalReviews,
+                        document.uploadUserType, user.firstName, user.lastName,
+                        document.docStatus
+                )
+                .orderBy(order.id.countDistinct().desc())
+                .limit(limit)
+                .fetch();
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public DocumentDetailsResponse findDocumentById(Integer documentId, String email) {
+        try {
+            // Validate input
+            if (documentId == null || documentId <= 0) {
+                throw new CustomMessagePresentException("Invalid document ID: " + documentId);
+            }
+
+            // Query 1: Document Details with specialist category
+            Tuple docTuple = findDocumentDetails(documentId);
+            if (docTuple == null) {
+                throw new CustomMessagePresentException("Document not found with id: " + documentId);
+            }
+
+            // Build publisher name from tuple data
+            String publisherName = docTuple.get(user.firstName) !=null ?
+                    docTuple.get(user.firstName) + " " + docTuple.get(user.lastName):"";
+
+            // Query 2: Category Data (must exist)
+            List<CategoryDocsResponse> categoryDataList = findCategoryData(documentId);
+            if (categoryDataList.isEmpty()) {
+                throw new CustomMessagePresentException("No category data found for document: " + documentId);
+            }
+
+            // Query 3: Keywords (must exist)
+            List<KeywordResponse> keywordsList = findKeywords(documentId);
+            if (keywordsList.isEmpty()) {
+                throw new CustomMessagePresentException("No keywords found for document: " + documentId);
+            }
+
+            // Query 4: Recent Reviews
+            List<ReviewResponse> reviews = findRecentReviews(documentId, email);
+
+            // Query 5: User Review
+            ReviewResponse userReview = findUserReview(documentId, email);
+
+            // Query 6: Similar Documents
+            List<LandingDocumentResponse> similarDocuments = findSimilarDocuments(documentId);
+
+            // Build response with updated field order and types
+            return new DocumentDetailsResponse(
+                    docTuple.get(document.id),
+                    docTuple.get(document.title),
+                    docTuple.get(document.description),
+                    docTuple.get(document.isFree),
+                    docTuple.get(document.creditCost),
+                    docTuple.get(document.calculatedPrice),
+                    docTuple.get(document.docVersion),
+                    Objects.requireNonNull(docTuple.get(document.uploadUserType)).name(),
+                    docTuple.get(document.rejectionNote),
+                    docTuple.get(document.averageRating),
+                    docTuple.get(document.totalReviews),
+                    publisherName,
+                    true,
+                    new SpecialistCategoryResponse(
+                            docTuple.get(document.specialistCategory.id),
+                            docTuple.get(document.specialistCategory.name)
+                    ),
+                    new ThumbnailResponse(
+                            docTuple.get(thumbnailMediaStorage.url.coalesce("")),
+                            docTuple.get(thumbnailMediaStorage.mimeType)
+                    ),
+                    reviews,
+                    userReview,
+                    keywordsList,
+                    categoryDataList,
+                    similarDocuments
+            );
+        } catch (DataAccessException | PersistenceException e) {
+            throw new DatabaseException("Error accessing document data: " + e.getMessage(), e);
+        }
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public List<TestimonialsResponse> findTestimonialsReview() {
+        try {
+            List<Tuple> results = queryFactory
+                    .select(
+                            testimonials.id,
+                            testimonials.comment,
+                            testimonials.rating,
+                            testimonials.createdAt,
+                            user.firstName,
+                            user.lastName
+                    )
+                    .from(testimonials)
+                    .leftJoin(testimonials.user, user)
+                    .where(testimonials.deletedAt.isNull())
+                    .orderBy(testimonials.createdAt.desc())
+                    .fetch();
+
+            return results.stream().map(tuple -> TestimonialsResponse.builder()
+                            .id(tuple.get(testimonials.id))
+                            .comment(tuple.get(testimonials.comment))
+                            .rating(tuple.get(testimonials.rating))
+                            .createdAt(tuple.get(testimonials.createdAt))
+                            .userName(tuple.get(user.firstName) + " " + tuple.get(user.lastName))
+                            .build())
+                    .collect(Collectors.toList());
+        } catch (PersistenceException e) {
+            logger.error("Error fetching reviews and ratings for user : {}", e.getMessage(), e);
+            throw new CustomMessagePresentException("Error fetching reviews and ratings.");
+        }
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public List<LandingDocumentResponse> getAllDocument(Integer limit, Integer offset, String sortDate,
+                                                        String sortPrice, Integer rating, Integer specialistCategoryId) {
+        BooleanBuilder conditions = buildDocumentConditions(rating, specialistCategoryId);
+        List<OrderSpecifier<?>> orderSpecifiers = buildOrderSpecifiers(sortDate, sortPrice);
+
+        return queryFactory
+                .select(Projections.constructor(LandingDocumentResponse.class,
+                        document.id,
+                        document.title.as("title"),
+                        document.description.as("description"),
+                        thumbnailMediaStorage.url.coalesce("").as("thumbnail"),
+                        Projections.constructor(PriceResponse.class,
+                                document.creditCost.as("value")),
+                        Projections.constructor(RatingResponse.class,
+                                document.averageRating.as("average"),
+                                document.totalReviews.as("count")),
+                        Expressions.stringTemplate(
+                                "CONCAT({0}, ' ', {1})", user.firstName, user.lastName
+                        ).as("publisherName"),
+                        document.docStatus.eq(DocStatus.APPROVED).as("isPublished")
+                ))
+                .from(document)
+                .leftJoin(thumbnailMediaStorage).on(thumbnailMediaStorage.id.eq(document.thumbnail.id))
+                .leftJoin(document.uploadBy, user)
+                .where(conditions)
+                .orderBy(orderSpecifiers.toArray(new OrderSpecifier[0]))
+                .offset(offset)
+                .limit(limit)
+                .fetch();
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public Long fetchAllDocumentCount(Integer rating, Integer specialistCategoryId) {
+        BooleanBuilder conditions = buildDocumentConditions(rating, specialistCategoryId);
+        return queryFactory
+                .select(document.count())
+                .from(document)
+                .where(conditions)
+                .fetchOne();
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public List<LandingDocumentResponse> searchDocuments(String query, Integer limit, Integer offset) {
+        BooleanBuilder whereClause = buildSearchConditions(query);
+
+        return queryFactory
+                .select(Projections.constructor(LandingDocumentResponse.class,
+                        document.id,
+                        document.title,
+                        document.description,
+                        thumbnailMediaStorage.url.coalesce(""),
+                        Projections.constructor(PriceResponse.class, document.creditCost),
+                        Projections.constructor(RatingResponse.class, document.averageRating, document.totalReviews),
+                        Expressions.stringTemplate("CONCAT({0}, ' ', {1})", user.firstName, user.lastName),
+                        document.docStatus.eq(DocStatus.APPROVED)
+                ))
+                .from(document)
+                .leftJoin(thumbnailMediaStorage).on(thumbnailMediaStorage.id.eq(document.thumbnail.id))
+                .leftJoin(document.uploadBy, user)
+                .where(whereClause)
+                .orderBy(document.createdAt.desc())
+                .limit(limit)
+                .offset(offset)
+                .fetch();
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public Long countSearchDocuments(String query) {
+        BooleanBuilder whereClause = buildSearchConditions(query);
+        return queryFactory
+                .select(document.count())
+                .from(document)
+                .where(whereClause)
+                .fetchOne();
+    }
+
+    private BooleanBuilder buildSearchConditions(String query) {
+        BooleanBuilder whereClause = new BooleanBuilder();
+        whereClause.and(document.docStatus.eq(DocStatus.APPROVED));
+        whereClause.and(document.deletedAt.isNull());
+
+        if (query != null && !query.trim().isEmpty()) {
+            String searchTerm = "%" + query.trim().toLowerCase() + "%";
+            BooleanExpression searchExpression = document.title.lower().like(searchTerm)
+                    .or(document.description.lower().like(searchTerm));
+
+            // Subquery to check for category name matches
+            BooleanExpression categoryMatch = JPAExpressions.selectOne()
+                    .from(documentCategoryExperience)
+                    .join(documentCategoryExperience.categoryMapping, categoryMapping)
+                    .join(category).on(categoryMapping.categoryId.eq(category.id))
+                    .leftJoin(subCategory).on(categoryMapping.subCategoryId.eq(subCategory.id))
+                    .leftJoin(tertiaryCategory).on(categoryMapping.tertiaryCategoryId.eq(tertiaryCategory.id))
+                    .where(
+                            documentCategoryExperience.document.id.eq(document.id)
+                                    .and(
+                                            category.name.lower().like(searchTerm)
+                                                    .or(subCategory.name.lower().like(searchTerm))
+                                                    .or(tertiaryCategory.name.lower().like(searchTerm))
+                                    )
+                    ).exists();
+
+            whereClause.and(searchExpression.or(categoryMatch));
+        }
+        return whereClause;
+    }
+
+    private List<OrderSpecifier<?>> buildOrderSpecifiers(String sortDate, String sortPrice) {
+        List<OrderSpecifier<?>> orders = new ArrayList<>();
+        if (sortDate != null) {
+            Order idOrder = "asc".equalsIgnoreCase((sortDate)) ? Order.ASC : Order.DESC;
+            orders.add(new OrderSpecifier<>(idOrder, document.createdAt));
+        }
+        if (sortPrice != null) {
+            Order priceOrder = "asc".equalsIgnoreCase(sortPrice) ? Order.ASC : Order.DESC;
+            orders.add(new OrderSpecifier<>(priceOrder, document.creditCost));
+        }
+        if (orders.isEmpty()) {
+            orders.add(document.createdAt.desc());
+        }
+        return orders;
+    }
+
+    private BooleanBuilder buildDocumentConditions(Integer rating, Integer specialistCategoryId) {
+        BooleanBuilder conditions = new BooleanBuilder();
+        conditions.and(document.deletedAt.isNull());
+        conditions.and(document.docStatus.eq(DocStatus.APPROVED));
+
+        if (rating != null && rating > 0) {
+            int validRating = Math.min(rating, 5); // Ensure rating is not more than 5
+            conditions.and(document.averageRating.goe(BigDecimal.valueOf(validRating)));
+        }
+        if (specialistCategoryId != null && specialistCategoryId > 0) {
+            conditions.and(document.specialistCategory.id.eq(specialistCategoryId));
+        }
+        return conditions;
+    }
+
+    private Tuple findDocumentDetails(Integer documentId) {
+        return queryFactory
+                .select(
+                        document.id,
+                        document.title,
+                        document.description,
+                        document.isFree,
+                        document.creditCost,
+                        document.calculatedPrice,
+                        document.docVersion,
+                        document.uploadUserType,
+                        document.rejectionNote,
+                        document.averageRating,
+                        document.totalReviews,
+                        thumbnailMediaStorage.url.coalesce(""),
+                        thumbnailMediaStorage.mimeType,
+                        document.specialistCategory.id,
+                        document.specialistCategory.name,
+                        user.firstName,
+                        user.lastName
+                )
+                .from(document)
+                .leftJoin(thumbnailMediaStorage).on(thumbnailMediaStorage.id.eq(document.thumbnail.id))
+                .leftJoin(document.specialistCategory)
+                .leftJoin(document.uploadBy, user)
+                .where(document.id.eq(documentId)
+                        .and(document.deletedAt.isNull())
+                        .and(document.docStatus.eq(DocStatus.APPROVED)))
+                .fetchOne();
+    }
+
+    private List<ReviewResponse> findRecentReviews(Integer documentId, String email) {
+        return queryFactory
+                .select(
+                        reviewAndRating.id,
+                        reviewAndRating.rating,
+                        reviewAndRating.comment,
+                        reviewAndRating.createdAt,
+                        user.firstName,
+                        mediaStorage.url.coalesce("").as("reviewerAvatarUrl")
+                )
+                .from(reviewAndRating)
+                .join(user).on(reviewAndRating.user.id.eq(user.id))
+                .leftJoin(mediaStorage).on(user.id.eq(mediaStorage.ownerId)
+                        .and(mediaStorage.referenceType.eq(ReferenceType.UsersAvatars))
+                )
+                .where(reviewAndRating.document.id.eq(documentId).and(email != null && !email.isEmpty() ?
+                        user.email.ne(email) : Expressions.TRUE).and(reviewAndRating.deletedAt.isNull())
+                )
+                .orderBy(reviewAndRating.createdAt.desc())
+                .limit(2)
+                .fetch()
+                .stream()
+                .map(tuple -> new ReviewResponse(
+                        tuple.get(reviewAndRating.id),
+                        tuple.get(reviewAndRating.rating),
+                        tuple.get(reviewAndRating.comment),
+                        tuple.get(reviewAndRating.createdAt),
+                        tuple.get(user.firstName),
+                        tuple.get(mediaStorage.url.coalesce(""))
+                ))
+                .collect(Collectors.toList());
+    }
+
+    private ReviewResponse findUserReview(Integer documentId, String email) {
+        if (email == null || email.isEmpty()) {
+            return null;
+        }
+        Tuple tuple = queryFactory
+                .select(
+                        reviewAndRating.id,
+                        reviewAndRating.rating,
+                        reviewAndRating.comment,
+                        reviewAndRating.createdAt,
+                        user.firstName,
+                        mediaStorage.url.coalesce("").as("reviewerAvatarUrl")
+                )
+                .from(reviewAndRating)
+                .join(user).on(reviewAndRating.user.id.eq(user.id))
+                .leftJoin(mediaStorage).on(user.id.eq(mediaStorage.ownerId)
+                        .and(mediaStorage.referenceType.eq(ReferenceType.UsersAvatars))
+                )
+                .where(
+                        reviewAndRating.document.id.eq(documentId)
+                                .and(user.email.eq(email)).and(reviewAndRating.deletedAt.isNull())
+                )
+                .limit(1)
+                .fetchOne();
+        return tuple != null
+                ? new ReviewResponse(
+                tuple.get(reviewAndRating.id),
+                tuple.get(reviewAndRating.rating),
+                tuple.get(reviewAndRating.comment),
+                tuple.get(reviewAndRating.createdAt),
+                tuple.get(user.firstName),
+                tuple.get(mediaStorage.url.coalesce(""))
+        )
+                : null;
+    }
+
+    private List<LandingDocumentResponse> findSimilarDocuments(Integer documentId) {
+        Integer specialistCategoryId = queryFactory
+                .select(document.specialistCategory.id)
+                .from(document)
+                .where(document.id.eq(documentId).and(document.deletedAt.isNull()))
+                .fetchOne();
+
+        List<LandingDocumentResponse> list = new ArrayList<>();
+        for (Tuple tuple : queryFactory
+                .select(
+                        document.id,
+                        document.title,
+                        document.description,
+                        thumbnailMediaStorage.url.coalesce(""),
+                        document.creditCost,
+                        document.averageRating,
+                        document.totalReviews,
+                        document.uploadUserType,
+                        user.firstName,
+                        user.lastName
+                )
+                .from(document)
+                .leftJoin(thumbnailMediaStorage).on(thumbnailMediaStorage.id.eq(document.thumbnail.id))
+                .leftJoin(document.uploadBy, user)
+                .where(
+                        document.specialistCategory.id.eq(specialistCategoryId)
+                                .and(document.id.ne(documentId))
+                                .and(document.docStatus.eq(DocStatus.APPROVED))
+                                .and(document.deletedAt.isNull())
+                                .and(document.title.isNotNull())
+                )
+                .limit(4)
+                .fetch()) {
+            LandingDocumentResponse bdt = new LandingDocumentResponse(
+                    tuple.get(document.id),
+                    tuple.get(document.title),
+                    tuple.get(document.description),
+                    tuple.get(thumbnailMediaStorage.url.coalesce("")),
+                    new PriceResponse("BDT", tuple.get(document.creditCost)),
+                    new RatingResponse(tuple.get(document.averageRating), tuple.get(document.totalReviews)),
+                    tuple.get(user.firstName) + " " + tuple.get(user.lastName),
+                    true
+            );
+            list.add(bdt);
+        }
+        return list;
+    }
+
+    private List<KeywordResponse> findKeywords(Integer documentId) {
+        return queryFactory
+                .select(
+                        keywords1.id,
+                        keywords1.keywords
+                )
+                .from(document)
+                .join(document.keywords, keywords1)
+                .where(document.id.eq(documentId).and(keywords1.deletedAt.isNull()))
+                .fetch()
+                .stream()
+                .map(tuple -> new KeywordResponse(
+                        tuple.get(keywords1.id),
+                        tuple.get(keywords1.keywords)
+                ))
+                .collect(Collectors.toList());
+    }
+
+    private List<CategoryDocsResponse> findCategoryData(Integer documentId) {
+        return queryFactory
+                .select(
+                        categoryMapping.id,
+                        categoryMapping.categoryId,
+                        categoryMapping.subCategoryId,
+                        categoryMapping.tertiaryCategoryId,
+                        category.name,
+                        subCategory.name,
+                        tertiaryCategory.name
+                )
+                .from(documentCategoryExperience)
+                .join(categoryMapping).on(documentCategoryExperience.categoryMapping.id.eq(categoryMapping.id))
+                .join(category).on(categoryMapping.categoryId.eq(category.id))
+                .leftJoin(subCategory).on(categoryMapping.subCategoryId.eq(subCategory.id))
+                .leftJoin(tertiaryCategory).on(categoryMapping.tertiaryCategoryId.eq(tertiaryCategory.id))
+                .where(
+                        documentCategoryExperience.document.id.eq(documentId)
+                                .and(categoryMapping.deletedAt.isNull())
+                )
+                .fetch()
+                .stream()
+                .map(tuple -> new CategoryDocsResponse(
+                        tuple.get(categoryMapping.id),
+                        tuple.get(categoryMapping.categoryId),
+                        tuple.get(categoryMapping.subCategoryId),
+                        tuple.get(categoryMapping.tertiaryCategoryId),
+                        tuple.get(category.name),
+                        tuple.get(subCategory.name),
+                        tuple.get(tertiaryCategory.name)
+                ))
+                .collect(Collectors.toList());
+    }
+}
+
+
+
+
+
+##############################################
+
+
+LandingPageRepositoryImpl.java (refined)
+
+
+package com.nexalinx.nexadoc.repository.impl;
+
+import com.google.firebase.database.DatabaseException;
+import com.nexalinx.nexadoc.entity.QDocument;
+import com.nexalinx.nexadoc.entity.QOrders;
+import com.nexalinx.nexadoc.entity.QTestimonials;
+import com.nexalinx.nexadoc.enums.DocStatus;
+import com.nexalinx.nexadoc.enums.ReferenceType;
+import com.nexalinx.nexadoc.exception.CustomMessagePresentException;
+import com.nexalinx.nexadoc.repository.LandingPageRepositoryCustom;
+import com.nexalinx.nexadoc.response.*;
+import com.querydsl.core.BooleanBuilder;
+import com.querydsl.core.Tuple;
+import com.querydsl.core.types.Order;
+import com.querydsl.core.types.OrderSpecifier;
+import com.querydsl.core.types.Projections;
+import com.querydsl.core.types.dsl.Expressions;
+import com.querydsl.jpa.impl.JPAQueryFactory;
+import jakarta.persistence.PersistenceException;
+import lombok.RequiredArgsConstructor;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.dao.DataAccessException;
+import org.springframework.stereotype.Repository;
+
+import java.math.BigDecimal;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Objects;
+import java.util.stream.Collectors;
+
+import static com.nexalinx.nexadoc.entity.QCategory.category;
+import static com.nexalinx.nexadoc.entity.QCategoryMapping.categoryMapping;
+import static com.nexalinx.nexadoc.entity.QDocument.document;
+import static com.nexalinx.nexadoc.entity.QDocumentCategoryExperience.documentCategoryExperience;
+import static com.nexalinx.nexadoc.entity.QKeywords.keywords1;
+import static com.nexalinx.nexadoc.entity.QMediaStorage.mediaStorage;
+import static com.nexalinx.nexadoc.entity.QReviewAndRating.reviewAndRating;
+import static com.nexalinx.nexadoc.entity.QSubCategory.subCategory;
+import static com.nexalinx.nexadoc.entity.QTertiaryCategory.tertiaryCategory;
+import static com.nexalinx.nexadoc.entity.QThumbnailMediaStorage.thumbnailMediaStorage;
+import static com.nexalinx.nexadoc.entity.QUser.user;
+
+@Repository
+@RequiredArgsConstructor
+public class LandingPageRepositoryImpl implements LandingPageRepositoryCustom {
+    private static final Logger logger = LoggerFactory.getLogger(LandingPageRepositoryImpl.class);
+    private final JPAQueryFactory queryFactory;
+    private final QTestimonials testimonials = QTestimonials.testimonials;
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public List<LandingDocumentResponse> findApprovedDocumentsWithLimit(long limit) {
+        return queryFactory
+                .select(Projections.constructor(LandingDocumentResponse.class,
+                        document.id,
+                        document.title.as("title"),
+                        document.description.as("description"),
+                        thumbnailMediaStorage.url.coalesce("").as("thumbnail"),
+                        Projections.constructor(PriceResponse.class,
+                                document.creditCost.as("value")),
+                        Projections.constructor(RatingResponse.class,
+                                document.averageRating.as("average"),
+                                document.totalReviews.as("count")),
+                        Expressions.stringTemplate(
+                                "CONCAT({0}, ' ', {1})", user.firstName, user.lastName
+                        ).as("publisherName"),
+                        document.docStatus.eq(DocStatus.APPROVED).as("isPublished")
+                ))
+                .from(document)
+                .leftJoin(thumbnailMediaStorage).on(thumbnailMediaStorage.id.eq(document.thumbnail.id))
+                .leftJoin(document.uploadBy, user)
+                .where(document.docStatus.eq(DocStatus.APPROVED).and(document.deletedAt.isNull()))
+                .orderBy(document.updatedAt.desc().nullsLast(), document.createdAt.desc())
+                .limit(limit)
+                .fetch();
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public List<LandingDocumentResponse> findMostSellApprovedDocumentWithLimit(long limit) {
+
+        QDocument document = QDocument.document;
+        QOrders order = QOrders.orders;
+
+        return queryFactory
+                .select(Projections.constructor(LandingDocumentResponse.class,
+                        document.id.intValue(),
+                        document.title,
+                        document.description,
+                        thumbnailMediaStorage.url.coalesce(""),
+                        Projections.constructor(PriceResponse.class,
+                                document.creditCost),
+                        Projections.constructor(RatingResponse.class,
+                                document.averageRating,
+                                document.totalReviews),
+                        Expressions.stringTemplate(
+                                "CONCAT({0}, ' ', {1})", user.firstName, user.lastName
+                        ).as("publisherName"),
+                        Expressions.cases()
+                                .when(document.docStatus.eq(DocStatus.APPROVED))
+                                .then(true)
+                                .otherwise(false)
+                ))
+                .from(document)
+                .leftJoin(thumbnailMediaStorage).on(thumbnailMediaStorage.id.eq(document.thumbnail.id))
+                .leftJoin(document.uploadBy, user)
+                .leftJoin(order).on(order.document.any().eq(document))
+                .where(document.docStatus.eq(DocStatus.APPROVED)
+                        .and(document.deletedAt.isNull()))
+                .groupBy(
+                        document.id, document.title, document.description,
+                        thumbnailMediaStorage.url, document.creditCost,
+                        document.averageRating, document.totalReviews,
+                        document.uploadUserType, user.firstName, user.lastName,
+                        document.docStatus
+                )
+                .orderBy(order.id.countDistinct().desc())
+                .limit(limit)
+                .fetch();
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public DocumentDetailsResponse findDocumentById(Integer documentId, String email) {
+        try {
+            // Validate input
+            if (documentId == null || documentId <= 0) {
+                throw new CustomMessagePresentException("Invalid document ID: " + documentId);
+            }
+
+            // Query 1: Document Details with specialist category
+            Tuple docTuple = findDocumentDetails(documentId);
+            if (docTuple == null) {
+                throw new CustomMessagePresentException("Document not found with id: " + documentId);
+            }
+
+            // Build publisher name from tuple data
+            String publisherName = docTuple.get(user.firstName) !=null ?
+                    docTuple.get(user.firstName) + " " + docTuple.get(user.lastName):"";
+
+            // Query 2: Category Data (must exist)
+            List<CategoryDocsResponse> categoryDataList = findCategoryData(documentId);
+            if (categoryDataList.isEmpty()) {
+                throw new CustomMessagePresentException("No category data found for document: " + documentId);
+            }
+
+            // Query 3: Keywords (must exist)
+            List<KeywordResponse> keywordsList = findKeywords(documentId);
+            if (keywordsList.isEmpty()) {
+                throw new CustomMessagePresentException("No keywords found for document: " + documentId);
+            }
+
+            // Query 4: Recent Reviews
+            List<ReviewResponse> reviews = findRecentReviews(documentId, email);
+
+            // Query 5: User Review
+            ReviewResponse userReview = findUserReview(documentId, email);
+
+            // Query 6: Similar Documents
+            List<LandingDocumentResponse> similarDocuments = findSimilarDocuments(documentId);
+
+            // Build response with updated field order and types
+            return new DocumentDetailsResponse(
+                    docTuple.get(document.id),
+                    docTuple.get(document.title),
+                    docTuple.get(document.description),
+                    docTuple.get(document.isFree),
+                    docTuple.get(document.creditCost),
+                    docTuple.get(document.calculatedPrice),
+                    docTuple.get(document.docVersion),
+                    Objects.requireNonNull(docTuple.get(document.uploadUserType)).name(),
+                    docTuple.get(document.rejectionNote),
+                    docTuple.get(document.averageRating),
+                    docTuple.get(document.totalReviews),
+                    publisherName,
+                    true,
+                    new SpecialistCategoryResponse(
+                            docTuple.get(document.specialistCategory.id),
+                            docTuple.get(document.specialistCategory.name)
+                    ),
+                    new ThumbnailResponse(
+                            docTuple.get(thumbnailMediaStorage.url.coalesce("")),
+                            docTuple.get(thumbnailMediaStorage.mimeType)
+                    ),
+                    reviews,
+                    userReview,
+                    keywordsList,
+                    categoryDataList,
+                    similarDocuments
+            );
+        } catch (DataAccessException | PersistenceException e) {
+            throw new DatabaseException("Error accessing document data: " + e.getMessage(), e);
+        }
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public List<TestimonialsResponse> findTestimonialsReview() {
+        try {
+            List<Tuple> results = queryFactory
+                    .select(
+                            testimonials.id,
+                            testimonials.comment,
+                            testimonials.rating,
+                            testimonials.createdAt,
+                            user.firstName,
+                            user.lastName,
+                            mediaStorage.url
+                    )
+                    .from(testimonials)
+                    .leftJoin(testimonials.user, user)
+                    .leftJoin(mediaStorage).on(mediaStorage.ownerId.eq(user.id)
+                            .and(mediaStorage.referenceType.eq(ReferenceType.UsersAvatars)))
+                    .where(testimonials.deletedAt.isNull())
+                    .orderBy(testimonials.createdAt.desc())
+                    .fetch();
+
+            return results.stream().map(tuple -> TestimonialsResponse.builder()
+                            .id(tuple.get(testimonials.id))
+                            .comment(tuple.get(testimonials.comment))
+                            .rating(tuple.get(testimonials.rating))
+                            .createdAt(tuple.get(testimonials.createdAt))
+                            .userName(tuple.get(user.firstName) + " " + tuple.get(user.lastName))
+                            .UserAvatarUrl(tuple.get(mediaStorage.url))
+                            .build())
+                    .collect(Collectors.toList());
+        } catch (PersistenceException e) {
+            logger.error("Error fetching reviews and ratings for user : {}", e.getMessage(), e);
+            throw new CustomMessagePresentException("Error fetching reviews and ratings.");
+        }
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public List<LandingDocumentResponse> getAllDocument(Integer limit, Integer offset, String sortDate,
+                                                        String sortPrice, Integer rating, Integer specialistCategoryId) {
+        BooleanBuilder conditions = buildDocumentConditions(rating, specialistCategoryId);
+        List<OrderSpecifier<?>> orderSpecifiers = buildOrderSpecifiers(sortDate, sortPrice);
+
+        return queryFactory
+                .select(Projections.constructor(LandingDocumentResponse.class,
+                        document.id,
+                        document.title.as("title"),
+                        document.description.as("description"),
+                        thumbnailMediaStorage.url.coalesce("").as("thumbnail"),
+                        Projections.constructor(PriceResponse.class,
+                                document.creditCost.as("value")),
+                        Projections.constructor(RatingResponse.class,
+                                document.averageRating.as("average"),
+                                document.totalReviews.as("count")),
+                        Expressions.stringTemplate(
+                                "CONCAT({0}, ' ', {1})", user.firstName, user.lastName
+                        ).as("publisherName"),
+                        document.docStatus.eq(DocStatus.APPROVED).as("isPublished")
+                ))
+                .from(document)
+                .leftJoin(thumbnailMediaStorage).on(thumbnailMediaStorage.id.eq(document.thumbnail.id))
+                .leftJoin(document.uploadBy, user)
+                .where(conditions)
+                .orderBy(orderSpecifiers.toArray(new OrderSpecifier[0]))
+                .offset(offset)
+                .limit(limit)
+                .fetch();
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public Long fetchAllDocumentCount(Integer rating, Integer specialistCategoryId) {
+        BooleanBuilder conditions = buildDocumentConditions(rating, specialistCategoryId);
+        return queryFactory
+                .select(document.count())
+                .from(document)
+                .where(conditions)
+                .fetchOne();
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public List<LandingDocumentResponse> searchDocuments(String query, Integer limit, Integer offset) {
+        BooleanBuilder whereClause = new BooleanBuilder();
+        whereClause.and(document.docStatus.eq(DocStatus.APPROVED));
+        whereClause.and(document.deletedAt.isNull());
+
+        String searchTerm = null;
+        if (query != null && !query.trim().isEmpty()) {
+            searchTerm = "%" + query.trim().toLowerCase() + "%";
+            whereClause.and(
+                    document.title.lower().like(searchTerm)
+                            .or(document.description.lower().like(searchTerm))
+                            .or(category.name.lower().like(searchTerm).and(categoryMapping.deletedAt.isNull()))
+                            .or(subCategory.name.lower().like(searchTerm).and(categoryMapping.deletedAt.isNull()))
+                            .or(tertiaryCategory.name.lower().like(searchTerm).and(categoryMapping.deletedAt.isNull()))
+            );
+        }
+
+        return queryFactory
+                .select(Projections.constructor(LandingDocumentResponse.class,
+                        document.id,
+                        document.title,
+                        document.description,
+                        thumbnailMediaStorage.url.coalesce(""),
+                        Projections.constructor(PriceResponse.class, document.creditCost),
+                        Projections.constructor(RatingResponse.class, document.averageRating, document.totalReviews),
+                        Expressions.stringTemplate("CONCAT({0}, ' ', {1})", user.firstName, user.lastName),
+                        document.docStatus.eq(DocStatus.APPROVED)
+                )).distinct()
+                .from(document)
+                .leftJoin(documentCategoryExperience).on(documentCategoryExperience.document.eq(document))
+                .leftJoin(categoryMapping).on(documentCategoryExperience.categoryMapping.eq(categoryMapping))
+                .leftJoin(category).on(categoryMapping.categoryId.eq(category.id))
+                .leftJoin(subCategory).on(categoryMapping.subCategoryId.eq(subCategory.id))
+                .leftJoin(tertiaryCategory).on(categoryMapping.tertiaryCategoryId.eq(tertiaryCategory.id))
+                .leftJoin(thumbnailMediaStorage).on(thumbnailMediaStorage.id.eq(document.thumbnail.id))
+                .leftJoin(document.uploadBy, user)
+                .where(whereClause)
+                .orderBy(document.createdAt.desc())
+                .limit(limit)
+                .offset(offset)
+                .fetch();
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public Long countSearchDocuments(String query) {
+        BooleanBuilder whereClause = new BooleanBuilder();
+        whereClause.and(document.docStatus.eq(DocStatus.APPROVED));
+        whereClause.and(document.deletedAt.isNull());
+
+        String searchTerm = null;
+        if (query != null && !query.trim().isEmpty()) {
+            searchTerm = "%" + query.trim().toLowerCase() + "%";
+            whereClause.and(
+                    document.title.lower().like(searchTerm)
+                            .or(document.description.lower().like(searchTerm))
+                            .or(category.name.lower().like(searchTerm).and(categoryMapping.deletedAt.isNull()))
+                            .or(subCategory.name.lower().like(searchTerm).and(categoryMapping.deletedAt.isNull()))
+                            .or(tertiaryCategory.name.lower().like(searchTerm).and(categoryMapping.deletedAt.isNull()))
+            );
+        }
+
+        return queryFactory
+                .select(document.countDistinct())
+                .from(document)
+                .leftJoin(documentCategoryExperience).on(documentCategoryExperience.document.eq(document))
+                .leftJoin(categoryMapping).on(documentCategoryExperience.categoryMapping.eq(categoryMapping))
+                .leftJoin(category).on(categoryMapping.categoryId.eq(category.id))
+                .leftJoin(subCategory).on(categoryMapping.subCategoryId.eq(subCategory.id))
+                .leftJoin(tertiaryCategory).on(categoryMapping.tertiaryCategoryId.eq(tertiaryCategory.id))
+                .where(whereClause)
+                .fetchOne();
+    }
+
+    /**
+     * Builds a list of OrderSpecifiers based on the provided sorting directions.
+     *
+     * @param sortDate  Sorting direction for date (should sort by createdAt, not id)
+     * @param sortPrice Sorting direction for price
+     * @return List of OrderSpecifiers for sorting
+     */
+    private List<OrderSpecifier<?>> buildOrderSpecifiers(String sortDate, String sortPrice) {
+        List<OrderSpecifier<?>> orders = new ArrayList<>();
+
+        // Sort by ID direction
+        if (sortDate != null) {
+            Order idOrder = "asc".equalsIgnoreCase((sortDate)) ? Order.ASC : Order.DESC;
+            orders.add(new OrderSpecifier<>(idOrder, document.createdAt));
+        }
+
+        // Sort by PRICE (credit cost) - CORRECTED
+        if (sortPrice != null) {
+            Order priceOrder = "asc".equalsIgnoreCase(sortPrice) ? Order.ASC : Order.DESC;
+            orders.add(new OrderSpecifier<>(priceOrder, document.creditCost));
+        }
+
+        // Default sorting if none specified
+        if (orders.isEmpty()) {
+            orders.add(document.createdAt.desc());
+        }
+        return orders;
+    }
+
+    /**
+     * Builds a {@link BooleanBuilder} object representing the conditions for filtering documents.
+     * Enhanced to include rating and category filters.
+     *
+     * @return A {@link BooleanBuilder} object representing the conditions for filtering documents.
+     */
+    private BooleanBuilder buildDocumentConditions(Integer rating, Integer specialistCategoryId) {
+        BooleanBuilder conditions = new BooleanBuilder();
+
+        conditions.and(document.deletedAt.isNull());
+        logger.debug("Final conditions built: {}", conditions);
+
+        if (rating != null && rating > 0) {
+            int validRating = Math.max(rating, 5);
+            conditions.and(document.averageRating.eq(BigDecimal.valueOf(validRating)));
+        }
+
+        // Add category filter if provided
+        if (specialistCategoryId != null && specialistCategoryId > 0) {
+            conditions.and(document.specialistCategory.id.eq(specialistCategoryId));
+            return conditions;
+        }
+
+        return conditions;
+    }
+
+    private Tuple findDocumentDetails(Integer documentId) {
+        return queryFactory
+                .select(
+                        document.id,
+                        document.title,
+                        document.description,
+                        document.isFree,
+                        document.creditCost,
+                        document.calculatedPrice,
+                        document.docVersion,
+                        document.uploadUserType,
+                        document.rejectionNote,
+                        document.averageRating,
+                        document.totalReviews,
+                        thumbnailMediaStorage.url.coalesce(""),
+                        thumbnailMediaStorage.mimeType,
+                        document.specialistCategory.id,
+                        document.specialistCategory.name,
+                        user.firstName,
+                        user.lastName
+                )
+                .from(document)
+                .leftJoin(thumbnailMediaStorage).on(thumbnailMediaStorage.id.eq(document.thumbnail.id))
+                .leftJoin(document.specialistCategory)
+                .leftJoin(document.uploadBy, user)
+                .where(document.id.eq(documentId)
+                        .and(document.deletedAt.isNull())
+                        .and(document.docStatus.eq(DocStatus.APPROVED)))
+                .fetchOne();
+    }
+
+    private List<ReviewResponse> findRecentReviews(Integer documentId, String email) {
+        return queryFactory
+                .select(
+                        reviewAndRating.id,
+                        reviewAndRating.rating,
+                        reviewAndRating.comment,
+                        reviewAndRating.createdAt,
+                        user.firstName,
+                        mediaStorage.url.coalesce("").as("reviewerAvatarUrl") // Added avatar URL
+                )
+                .from(reviewAndRating)
+                .join(user).on(reviewAndRating.user.id.eq(user.id))
+                .leftJoin(mediaStorage).on(user.id.eq(mediaStorage.ownerId)
+                                .and(mediaStorage.referenceType.eq(ReferenceType.UsersAvatars))
+                )
+                .where(reviewAndRating.document.id.eq(documentId).and(email != null && !email.isEmpty() ?
+                             user.email.ne(email) : Expressions.TRUE).and(reviewAndRating.deletedAt.isNull())
+                )
+                .orderBy(reviewAndRating.createdAt.desc())
+                .limit(2)
+                .fetch()
+                .stream()
+                .map(tuple -> new ReviewResponse(
+                        tuple.get(reviewAndRating.id),
+                        tuple.get(reviewAndRating.rating),
+                        tuple.get(reviewAndRating.comment),
+                        tuple.get(reviewAndRating.createdAt),
+                        tuple.get(user.firstName),
+                        tuple.get(mediaStorage.url.coalesce("")) // Map new field
+                ))
+                .collect(Collectors.toList());
+    }
+
+    private ReviewResponse findUserReview(Integer documentId, String email) {
+        if (email == null || email.isEmpty()) {
+            return null;
+        }
+        Tuple tuple = queryFactory
+                .select(
+                        reviewAndRating.id,
+                        reviewAndRating.rating,
+                        reviewAndRating.comment,
+                        reviewAndRating.createdAt,
+                        user.firstName,
+                        mediaStorage.url.coalesce("").as("reviewerAvatarUrl") // Added avatar URL
+                )
+                .from(reviewAndRating)
+                .join(user).on(reviewAndRating.user.id.eq(user.id))
+                .leftJoin(mediaStorage).on(user.id.eq(mediaStorage.ownerId)
+                                .and(mediaStorage.referenceType.eq(ReferenceType.UsersAvatars))
+                )
+                .where(
+                        reviewAndRating.document.id.eq(documentId)
+                                .and(user.email.eq(email)).and(reviewAndRating.deletedAt.isNull())
+                )
+                .limit(1)
+                .fetchOne();
+        return tuple != null
+                ? new ReviewResponse(
+                tuple.get(reviewAndRating.id),
+                tuple.get(reviewAndRating.rating),
+                tuple.get(reviewAndRating.comment),
+                tuple.get(reviewAndRating.createdAt),
+                tuple.get(user.firstName),
+                tuple.get(mediaStorage.url.coalesce(""))
+        )
+                : null;
+    }
+
+    private List<LandingDocumentResponse> findSimilarDocuments(Integer documentId) {
+        Integer specialistCategoryId = queryFactory
+                .select(document.specialistCategory.id)
+                .from(document)
+                .where(document.id.eq(documentId).and(document.deletedAt.isNull()))
+                .fetchOne();
+
+        List<LandingDocumentResponse> list = new ArrayList<>();
+        for (Tuple tuple : queryFactory
+                .select(
+                        document.id,
+                        document.title,
+                        document.description,
+                        thumbnailMediaStorage.url.coalesce(""),
+                        document.creditCost,
+                        document.averageRating,
+                        document.totalReviews,
+                        document.uploadUserType,
+                        user.firstName,
+                        user.lastName
+                )
+                .from(document)
+                .leftJoin(thumbnailMediaStorage).on(thumbnailMediaStorage.id.eq(document.thumbnail.id))
+                .leftJoin(document.uploadBy, user)
+                .where(
+                        document.specialistCategory.id.eq(specialistCategoryId)
+                                .and(document.id.ne(documentId))
+                                .and(document.docStatus.eq(DocStatus.APPROVED))
+                                .and(document.deletedAt.isNull())
+                                .and(document.title.isNotNull())
+                )
+                .limit(4)
+                .fetch()) {
+            LandingDocumentResponse bdt = new LandingDocumentResponse(
+                    tuple.get(document.id),
+                    tuple.get(document.title),
+                    tuple.get(document.description),
+                    tuple.get(thumbnailMediaStorage.url.coalesce("")),
+                    new PriceResponse("BDT", tuple.get(document.creditCost)),
+                    new RatingResponse(tuple.get(document.averageRating), tuple.get(document.totalReviews)),
+                    tuple.get(user.firstName) + " " + tuple.get(user.lastName),
+                    true
+            );
+            list.add(bdt);
+        }
+        return list;
+    }
+
+    private List<KeywordResponse> findKeywords(Integer documentId) {
+        return queryFactory
+                .select(
+                        keywords1.id,
+                        keywords1.keywords
+                )
+                .from(document)
+                .join(document.keywords, keywords1)
+                .where(document.id.eq(documentId).and(keywords1.deletedAt.isNull()))
+                .fetch()
+                .stream()
+                .map(tuple -> new KeywordResponse(
+                        tuple.get(keywords1.id),
+                        tuple.get(keywords1.keywords)
+                ))
+                .collect(Collectors.toList());
+    }
+
+    private List<CategoryDocsResponse> findCategoryData(Integer documentId) {
+        return queryFactory
+                .select(
+                        categoryMapping.id,
+                        categoryMapping.categoryId,
+                        categoryMapping.subCategoryId,
+                        categoryMapping.tertiaryCategoryId,
+                        category.name,
+                        subCategory.name,
+                        tertiaryCategory.name
+                )
+                .from(documentCategoryExperience)
+                .join(categoryMapping).on(documentCategoryExperience.categoryMapping.id.eq(categoryMapping.id))
+                .join(category).on(categoryMapping.categoryId.eq(category.id))
+                .leftJoin(subCategory).on(categoryMapping.subCategoryId.eq(subCategory.id))
+                .leftJoin(tertiaryCategory).on(categoryMapping.tertiaryCategoryId.eq(tertiaryCategory.id))
+                .where(
+                        documentCategoryExperience.document.id.eq(documentId)
+                                .and(categoryMapping.deletedAt.isNull())
+                )
+                .fetch()
+                .stream()
+                .map(tuple -> new CategoryDocsResponse(
+                        tuple.get(categoryMapping.id),
+                        tuple.get(categoryMapping.categoryId),
+                        tuple.get(categoryMapping.subCategoryId),
+                        tuple.get(categoryMapping.tertiaryCategoryId),
+                        tuple.get(category.name),
+                        tuple.get(subCategory.name),
+                        tuple.get(tertiaryCategory.name)
+                ))
+                .collect(Collectors.toList());
+    }
+
+}
+
+
+
+
