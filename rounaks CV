@@ -1,0 +1,35 @@
+Thanks for the clarification, Arka! Here's a **paraphrased version** of your DevOps-focused **Experience Summary** and **Skills Summary**, keeping the structure and intent intact while improving flow and readability:
+
+---
+
+**[Your Name]**  
+[Your Phone Number] | [Your Email Address] | [LinkedIn Profile URL (Optional)]
+
+---
+
+### **Experience Summary**
+- Over 4 months of practical training and project-based experience in DevOps and cloud infrastructure management.
+- Hands-on expertise in deploying and managing cloud environments on **AWS** and **Microsoft Azure**.
+- Skilled in **Infrastructure as Code (IaC)** using **Terraform** for provisioning AWS resources (VPC, EC2, S3, Security Groups) and **Ansible** for automated server configuration and management.
+- Led the implementation of **CI/CD pipelines** with **Jenkins**, integrating **GitHub webhooks** and **Maven** for streamlined build and deployment processes.
+- Experience with **containerization and orchestration**, including writing **Dockerfiles**, managing images via **Amazon ECR**, and deploying applications using **Kubernetes (EKS, Kops)** and **AWS Fargate**.
+- Strong working knowledge of core **AWS services** such as EC2 (AMIs, Volumes, Auto Scaling), VPC (Subnets, Route Tables, NAT, Peering), S3 (Static Hosting, Replication), EFS, and Load Balancers.
+- Exposure to **Microsoft Azure**, including provisioning Virtual Machines, configuring V-Nets, and setting up network peering.
+- Proficient in **Git** for version control, including repository management, cloning, and code pushes.
+- Experience in configuring and managing **web and application servers** like **Apache (httpd)** and **Tomcat**.
+- Adept at identifying and resolving infrastructure and deployment-related issues.
+- Highly motivated to learn and adapt to new tools and technologies.
+
+---
+
+### **Skills Summary**
+- **Configuration Languages**: YAML (Ansible, Kubernetes), HCL (Terraform)  
+- **Operating Systems**: Linux (RHEL, Ubuntu, Amazon Linux), Windows  
+- **DevOps Tools**: Jenkins, Ansible, Terraform, Docker, Kubernetes (Kops, EKS), Git, Maven, GitHub Actions  
+- **Cloud Platforms**:  
+  - **AWS**: EC2, S3, VPC, IAM, EKS, ECS, Fargate, ELB, Auto Scaling Groups, ECR, EFS, Route53  
+  - **Microsoft Azure**: Virtual Machines, V-Net, Load Balancers, Peering  
+
+---
+
+Would you like help formatting this into a resume template or converting it into a PDF?
