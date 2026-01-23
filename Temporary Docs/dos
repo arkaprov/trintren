@@ -1,0 +1,122 @@
+DevOps TFS - Overnight processing checks
+
+
+
+By Jason Morris
+
+4 min
+
+2
+
+Add a reaction
+Azure DevOps
+Azure DevOps performs a daily series of overnight builds, deployments and test runs in various repositories, starting around 10pm and finishing around 5am. The result of this processing informs the team of individual issues which may affect the viability of software systems during the coming day.
+
+Status emails for Azure DevOps build results are available in the ‘CS-CS Azure DevOps’ inbox. This is a shared mailbox that you will have to add into Outlook manually. Using Outlook’s functionality, the failed builds can be highlighted to allow a fairly quick assessment of each. Navigate to the mailbox and search for ‘failed’ to highlight the items to check.
+
+The alternative is to search through Azure DevOps manually but the process for discovering the failed builds is a little more long-winded:
+
+go to the ‘Agent Pools’ page for each Azure DevOps collection, e.g., https://csazuredevops.charles-stanley.co.uk/cswebsites/_settings/agentpools
+
+click on each pool and find the jobs which failed in the 10pm to 5am overnight range
+
+click on each failed job and review its build log to determine the cause of the failure
+
+record the failure details in the  ‘Azure DevOps - Build and Deploy Failures’ in Teams
+
+Any failed (or omitted) builds should be investigated in the Azure DevOps pages which provide the log for the individual build/deployment/test run. Issues should be assessed, summarised and brought to the attention of the development team by supplying structured details in the ‘Azure DevOps - Build and Deploy Failures’ space in Teams. From here, any rectification can be organised by the squad leads and the viability of the associated software systems (e.g. Figaro, JETS, FigaroAPI, etc) can be investigated.
+
+There are many pools available to each collection, so this work is much quicker if the Outlook filtering method is used. In the future, we may explore other mechanisms such as the Azure DevOps Server REST API, Build REST API for Azure DevOps Services - Azure DevOps Services REST API and Runs - List - REST API (Azure DevOps Pipelines)
+
+Here’s an example report which shows the level of detail expected:
+
+image-20251112-071801.png
+Once checks are completed then we need to ensure that the information is shared in the channel Azure DevOps - Build and deploy failures | CS - Development Team | Microsoft Teams
+
+ 
+
+Example of an issue:
+
+Build and deploy failures summary
+
+Build and Package PortalUI
+
+https://csazuredevops.charles-stanley.co.uk/UnifiedCS/ClientPortal/_build/results?buildId=68652&view=results
+
+SonarQube timing issue: Date of analysis cannot be older than the date of the last known analysis on this project.
+
+ 
+
+ An example of if all is working and there has been no errors. This still needs to be shown to ensure that everyone is aware that it has been checked.
+
+Build and deploy failures summary
+
+No failures in builds or releases overnight.
+
+ 
+
+
+Data Staging
+Data Staging has SIT, UAT (CSL) and UAT (CSU) stages. Each of these runs a full data refresh each day with the start times distinct from each other in order that the supporting iSeries system, CSDEV1.csuat.com, is not overloaded. Failures may affect the performance of the coming day’s system use, viability of test data being setup, etc.
+
+A summary of the individual runs is available in the following dashboard pages:
+
+SIT - http://datastagingdashboard-sit.charles-stanley.co.uk/app/
+
+UAT (CSL) - http://datastagingdashboard-uat.charles-stanley.co.uk/app/
+
+UAT (CSU) - http://datastagingdashboardcsu.charles-stanley.co.uk/app/
+
+Each run should be assessed for errors, including high failure rates in individual pipelines, low throughput rates (the ‘Speed’ column'), omitted or reconfigured pipelines, etc. This information should be reported to the development team via the ‘General’ space in Teams so any required rectification can be organised and the viability of the associated software systems can be investigated. For any run which is still in progress, revisit the dashboard periodically and update the message in the ‘General’ space with any changes.
+
+Here’s an example of the level of detail expected:
+
+image-20251112-071930.png
+When you have completed your checks this informaiton needs to be shared within this channel: General | CS - Development Team | Microsoft Teams
+
+An example of this is below:
+
+Data Staging overnight data refresh status 15/01/2026
+
+SIT Environment – Run Status: Running | Progress: 21%
+Dashboard: http://datastagingdashboard-sit.charles-stanley.co.uk/app/
+Summary:
+ ✅ Completed: Lookup (8)
+
+⏳ In Progress: Account(Running)
+
+⚪ Not Started: Account, Instrument, InstrumentCompany, InstrumentBrokerView, InstrumentFundDetails, MarketIndex, AccountActivities
+
+ 
+
+UAT Environment – Run Status: Running | Progress: 77%
+Dashboard: http://datastagingdashboard-uat.charles-stanley.co.uk/app/
+Summary:
+ ✅ Completed: Account(167501), AccountActivities (135799) Lookup (8),  Instrument(453964), InstrumentCompany(15324), InstrumentBrokerView(15324), 
+ ⏳ In Progress:  InstrumentFundDetails(Running)
+ ⚪ Not Started: MarketIndex
+
+CSU Environment – Run Status: RunTableBuildFailed | Progress: 20%
+Dashboard: http://datastagingdashboardcsu.charles-stanley.co.uk/app/
+Summary:
+ ✅ Completed: Account(FAILED),  AccountActivities(231855),  Lookup (8), Instrument(FAILED), InstrumentCompany(15324), InstrumentBrokerView(15324)
+ ⏳ In Progress: InstrumentFundDetails(Running)
+ ⚪ Not Started:  MarketIndex
+
+ 
+
+Notes:
+Currently, the SIT staging environment does not have a ‘Person’ pipeline as Identity Management (IDM) is performing that function. IDM may be deployed to UAT (CSL) and UAT (CSU) at some point.
+
+For the ‘Person', ‘Account’ and ‘AccountActivities’ pipelines, an ‘Ignore Gate’ button in the ‘Actions’ column usually signifies that the Figaro end of day processes have not completed on the associated environment on the CSDEV1 iSeries. SIT and UAT (CSL) use the Figaro CSL environment, UAT (CSU) uses the Figaro CSU environment.
+
+For the 'Instrument’ pipeline, an ‘Ignore Gate’ button in the ‘Actions’ column indicates that the process which updates the CSMarketData database has not completed. SIT uses the DEV-SQLWEB01.csuat.com database, UAT (CSL) and UAT (CSU) use the BSASQL-WEB.csuat.com database.
+
+
+
+
+
+
+
+Add a comment
+
