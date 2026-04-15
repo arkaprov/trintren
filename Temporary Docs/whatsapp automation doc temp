@@ -90,3 +90,24 @@ text
 https://n8n-chatbot.yourdomain.com
 Paste this public URL into Meta’s Callback URL (same as ngrok step above).
 Note: Cloudflare Tunnel is more stable and the URL doesn’t change, but it requires a Cloudflare account and sometimes extra DNS setup.
+
+
+
+
+
+
+
+
+Slow server issue
+
+
+Also try this immediately — open your browser and paste this exact URL (replace with your ngrok URL):
+https://YOUR-NGROK-URL/webhook/wabot?hub.mode=subscribe&hub.verify_token=test123&hub.challenge=abc123
+Tell me exactly what it returns. If it returns abc123 then n8n is perfect and the problem is 100% inside Meta's console configuration. We'll fix that side.
+ts returning abc123.. But slow, i think server is slow.
+
+That's the problem. Meta has a very short timeout — around 5 seconds. If your n8n takes longer than that to respond, Meta rejects it even if the response is correct.
+The verify response is slow because the request goes through too many nodes before responding — it hits the Code node, then the Switch node, then finally the Respond node. By then Meta has already timed out.
+The fix — make a dead-simple dedicated verify endpoint that responds instantly.
+Let me rewrite it so the GET verify webhook responds in literally 1 node with zero processing delay.
+
