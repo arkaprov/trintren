@@ -1,0 +1,92 @@
+Goal
+You wanted to turn your WhatsApp number into a smart AI chatbot using n8n that can:
+Handle text, voice notes (transcribe), images (describe), and videos (describe)
+Use AI (Google Gemini) to understand them
+Reply intelligently with memory + Wikipedia tool
+We later changed it to just text only no media.
+Step 1: Create Meta Business App + WhatsApp Product
+Go to: https://developers.facebook.com/apps
+Log in with your Facebook account.
+Click on Create App (big blue button).
+Select app type → Business → Click Next.
+Give your app a name (e.g., "WhatsApp AI Chatbot") and enter your email.
+Click Create App.
+In the app dashboard, under Add Products, click Add next to WhatsApp.
+Step 2: WhatsApp API Setup
+In the left menu, click WhatsApp → API Setup.
+Under Step 1: Select or add a phone number:
+You can start with the Test Phone Number provided by Meta (recommended for testing).
+Later you can add your real business number.
+Note down your Phone Number ID (important — shown on this page).
+Generate Permanent Access Token:
+Go to Business Settings (in Meta Business Suite).
+Create a System User → Give it full WhatsApp permissions.
+Generate and copy the System User Access Token.
+Step 3: Webhook Configuration (Where We Got Stuck)
+In n8n, open the original workflow and click the WhatsApp Trigger node → Copy the Webhook URL.
+Go back to Meta → WhatsApp → Configuration.
+Paste the Webhook URL in Callback URL.
+Set Verify Token to anything (e.g., test123).
+Click Verify and save.
+After successful verification, subscribe to the messages field.
+Problem Encountered:
+Webhook verification failed with error:
+"The callback URL or verify token couldn't be validated."
+Root Cause:
+n8n was running locally (http://localhost:5678). Meta cannot reach localhost. You need a public HTTPS URL.
+Solutions Attempted:
+ngrok (quick tunnel)
+Cloudflare Tunnel
+Both had issues because n8n is running locally on your machine.
+
+Current Status
+We successfully imported the workflow and reached the webhook verification stage, but got blocked due to the lack of a public URL for n8n.
+Solutions Attempted: Making Local n8n Public for Webhook
+Problem Recap
+n8n was running locally on http://localhost:5678. Meta (and Evolution API) can only call a public HTTPS URL. Localhost cannot be reached from outside → webhook verification failed.
+We tried two free tunneling tools to expose your local n8n.
+1. ngrok (Quick Tunnel) – First Attempt
+Step-by-step commands we used:
+Download and install ngrok from https://ngrok.com/download (Windows/Mac/Linux).
+Open terminal / command prompt and run these commands one by one:
+Bash
+# 1. Add your free ngrok auth token (get it from https://dashboard.ngrok.com/get-started/your-authtoken)
+ngrok config add-authtoken YOUR_NGROK_AUTHTOKEN_HERE
+
+# 2. Start the tunnel on n8n's default port
+ngrok http 5678
+ngrok will show a public URL like this:
+text
+https://abc123.ngrok.io
+Copy the https URL and paste it into Meta’s Callback URL field, like this:
+text
+https://abc123.ngrok.io/webhook-test/0b1b3a9b-2f6a-4f5a-8385-6365d96f4802
+Keep Verify Token as test123 → Click Verify and save.
+Note: The ngrok URL changes every time you restart it (free plan). For testing it works great.
+
+2. Cloudflare Tunnel – Second Attempt
+Step-by-step commands we used:
+Go to https://one.dash.cloudflare.com/ → Log in with your Cloudflare account (or create one).
+In the dashboard:
+Left menu → Networks → Connectors → Cloudflare Tunnels
+Click Create a tunnel
+Choose Cloudflared → Next
+Give it a name (e.g. n8n-chatbot) → Save tunnel
+Copy the installation command shown on the screen (it looks like this):
+Bash
+cloudflared tunnel run --token YOUR_LONG_CLOUDFLARE_TOKEN_HERE
+Download and install cloudflared (the connector):
+Windows/Mac/Linux: Download from https://developers.cloudflare.com/cloudflare-one/connections/connect-apps/install-and-setup/tunnel-guide/local/
+In terminal / command prompt, run the command you copied:
+Bash
+cloudflared tunnel run --token YOUR_LONG_CLOUDFLARE_TOKEN_HERE
+Go back to the Cloudflare dashboard → Add a Public Hostname:
+Subdomain: anything you want (e.g. n8n-chatbot)
+Domain: your Cloudflare domain (or use the free trycloudflare.com one)
+Service: http://localhost:5678
+Save
+Your public URL will now be something like:
+text
+https://n8n-chatbot.yourdomain.com
+Paste this public URL into Meta’s Callback URL (same as ngrok step above).
+Note: Cloudflare Tunnel is more stable and the URL doesn’t change, but it requires a Cloudflare account and sometimes extra DNS setup.
