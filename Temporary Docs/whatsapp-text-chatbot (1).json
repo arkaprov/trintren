@@ -1,0 +1,167 @@
+{
+  "name": "WhatsApp AI Chatbot",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "GET",
+        "path": "wabot",
+        "responseMode": "lastNode",
+        "options": {}
+      },
+      "id": "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa",
+      "name": "Verify Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [200, 160]
+    },
+    {
+      "parameters": {
+        "respondWith": "text",
+        "responseBody": "={{$json[\"query\"][\"hub.challenge\"]}}",
+        "options": {
+          "responseCode": 200
+        }
+      },
+      "id": "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb",
+      "name": "Respond Challenge",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [420, 160]
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "wabot",
+        "responseMode": "lastNode",
+        "options": {}
+      },
+      "id": "cccccccc-cccc-cccc-cccc-cccccccccccc",
+      "name": "Message Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [200, 380]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={\"status\":\"ok\"}",
+        "options": {
+          "responseCode": 200
+        }
+      },
+      "id": "dddddddd-dddd-dddd-dddd-dddddddddddd",
+      "name": "ACK Meta",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [420, 380]
+    },
+    {
+      "parameters": {
+        "jsCode": "const body = $input.first().json;\nconst entry = body?.entry?.[0];\nconst change = entry?.changes?.[0];\nconst msg = change?.value?.messages?.[0];\n\nif (!msg || msg.type !== 'text') return [];\n\nreturn [{ json: {\n  phone: msg.from,\n  text: msg.text.body.trim(),\n  waId: change.value.metadata.phone_number_id\n}}];"
+      },
+      "id": "eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee",
+      "name": "Extract Message",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 1,
+      "position": [640, 380]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=AIzaSyAqH9TGPcj2Dm4JilKs1u1GQ1I9v_6hyNc",
+        "sendBody": true,
+        "bodyParameters": { "parameters": [] },
+        "jsonBody": "={\"system_instruction\":{\"parts\":[{\"text\":\"You are a helpful friendly WhatsApp assistant. Keep replies short and conversational. Plain text only, no asterisks or markdown.\"}]},\"contents\":[{\"role\":\"user\",\"parts\":[{\"text\":\"{{$json[\\\"text\"]}}\"}]}],\"generationConfig\":{\"temperature\":0.7,\"maxOutputTokens\":400}}",
+        "options": {}
+      },
+      "id": "ffffffff-ffff-ffff-ffff-ffffffffffff",
+      "name": "Call Gemini",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 3,
+      "position": [860, 380]
+    },
+    {
+      "parameters": {
+        "jsCode": "const reply = $json?.candidates?.[0]?.content?.parts?.[0]?.text || 'Sorry, try again.';\nconst prev = $('Extract Message').first().json;\nreturn [{ json: { phone: prev.phone, waId: prev.waId, reply: reply.trim() } }];"
+      },
+      "id": "22222222-2222-2222-2222-222222222222",
+      "name": "Extract Reply",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 1,
+      "position": [1080, 380]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://graph.facebook.com/v19.0/1072858022582097/messages",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer EAF4BSQ5r1Q8BRMYOZCcKMD4nbhWtMK4fRNfzSzLEB8Erdl0EVEQOaUfLbGGEUe9KXFlpOR6ODEUjzC2CW2WqKttkLncEtN1zZBlktnoWQruDalHYCrQKrXfGNDY1NTnHUkY3gZACEcJu9bscpKnRnrBKXd1LKO9Yh4F5gQ7todzwgOXIpY8nZCsfEcfMSRfe99P3fB3HIZBdmnyUWtthJnPscj2Ynd12HCmfTw6CQTj7Mdxzgk8LIiXVpfhBm4kDJyKsbaLmkBXmk9yh7rEAUwoZA56Dvd1ZCq2ZARBo2wZDZD"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": { "parameters": [] },
+        "jsonBody": "={\"messaging_product\":\"whatsapp\",\"to\":\"{{$json[\"phone\"]}}\",\"type\":\"text\",\"text\":{\"body\":\"{{$json[\"reply\"]}}\"}}",
+        "options": {}
+      },
+      "id": "33333333-3333-3333-3333-333333333333",
+      "name": "Send Reply",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 3,
+      "position": [1300, 380]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={\"status\":\"sent\"}",
+        "options": {
+          "responseCode": 200
+        }
+      },
+      "id": "44444444-4444-4444-4444-444444444444",
+      "name": "Done",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [1520, 380]
+    }
+  ],
+  "connections": {
+    "Verify Webhook": {
+      "main": [[{ "node": "Respond Challenge", "type": "main", "index": 0 }]]
+    },
+    "Message Webhook": {
+      "main": [[{ "node": "ACK Meta", "type": "main", "index": 0 }]]
+    },
+    "ACK Meta": {
+      "main": [[{ "node": "Extract Message", "type": "main", "index": 0 }]]
+    },
+    "Extract Message": {
+      "main": [[{ "node": "Call Gemini", "type": "main", "index": 0 }]]
+    },
+    "Call Gemini": {
+      "main": [[{ "node": "Extract Reply", "type": "main", "index": 0 }]]
+    },
+    "Extract Reply": {
+      "main": [[{ "node": "Send Reply", "type": "main", "index": 0 }]]
+    },
+    "Send Reply": {
+      "main": [[{ "node": "Done", "type": "main", "index": 0 }]]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "saveManualExecutions": true,
+    "callerPolicy": "workflowsFromSameOwner"
+  },
+  "staticData": null,
+  "tags": [],
+  "pinData": {}
+}
